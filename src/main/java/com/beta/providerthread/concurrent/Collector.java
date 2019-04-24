@@ -13,6 +13,9 @@ public class Collector implements Runnable {
 
     private Metrics metrics;
 
+    public void execute(){
+
+    }
 
     @Override
     public void run() {
