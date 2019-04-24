@@ -18,5 +18,6 @@ public class Rule {
 
     private String moFilter;
 
+    private Long sampleInterval;
 
 }

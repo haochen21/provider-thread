@@ -16,6 +16,4 @@ public class HitLog {
 
     private Rule rule;
 
-    @EqualsAndHashCode.Exclude
-    private Long sampleInterval;
 }

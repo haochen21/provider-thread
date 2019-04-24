@@ -1,11 +1,21 @@
 package com.beta.providerthread.concurrent;
 
-import java.util.concurrent.Callable;
+import com.beta.providerthread.collect.Collector;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.concurrent.FutureTask;
 
-public class ProviderTask<V> extends FutureTask {
+@Getter
+@Setter
+public class ProviderTask<V> extends FutureTask<V> {
 
-    public ProviderTask(Callable callable) {
-        super(callable);
+    private Collector collector;
+
+    public ProviderTask(Runnable runnable) {
+        super(runnable, null);
+        if (runnable instanceof Collector) {
+            this.collector = (Collector) runnable;
+        }
     }
 }

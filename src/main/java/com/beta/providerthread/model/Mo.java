@@ -15,9 +15,7 @@ public class Mo {
 
     private String name;
 
-    private String category;
-
-    private String moType;
+    private Enum moType;
 
     private String ip;
 }
