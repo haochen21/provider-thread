@@ -17,7 +17,7 @@ public class SampleValue {
     private LocalDateTime sampleTime;
 
     @ToString.Include
-    private Enum type;
+    private ValueType type;
 
     @ToString.Include
     private Object value;

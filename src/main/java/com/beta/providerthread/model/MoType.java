@@ -38,4 +38,9 @@ public enum MoType {
         this.categoryName = category.getDisplayName();
         this.moTypeName = moTypeName;
     }
+
+    @Override
+    public String toString() {
+        return categoryName + "." + moTypeName;
+    }
 }

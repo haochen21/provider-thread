@@ -11,13 +11,13 @@ public class Metrics {
 
     private String name;
 
-    private Enum moType;
+    private MoType moType;
 
     @EqualsAndHashCode.Exclude
     private String provider;
 
     @EqualsAndHashCode.Exclude
-    private Enum providerType;
+    private ProviderType providerType;
 
     @EqualsAndHashCode.Exclude
     private String serviceUrl;

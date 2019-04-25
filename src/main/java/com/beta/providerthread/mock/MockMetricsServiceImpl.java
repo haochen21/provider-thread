@@ -3,6 +3,7 @@ package com.beta.providerthread.mock;
 import com.beta.providerthread.model.Metrics;
 import com.beta.providerthread.model.MoType;
 import com.beta.providerthread.model.ProviderType;
+import com.beta.providerthread.service.MetricsService;
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,9 +12,10 @@ import java.util.List;
 
 @Service
 @NoArgsConstructor
-public class MockMetricService {
+public class MockMetricsServiceImpl implements MetricsService {
 
-    public List<Metrics> getMetrics(){
+    @Override
+    public List<Metrics> findAll() {
         List<Metrics> metricsList = new ArrayList<>();
 
         Metrics cpuStatusMetrics = new Metrics();

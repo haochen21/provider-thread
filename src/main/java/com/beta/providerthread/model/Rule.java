@@ -7,17 +7,22 @@ import lombok.*;
 @NoArgsConstructor
 @EqualsAndHashCode
 @ToString
-public class Rule {
+public abstract class Rule {
 
-    @EqualsAndHashCode.Exclude
     private String id;
 
-    private Enum moType;
+    private RuleType ruleType;
 
-    private Metrics metrics;
+    private MoType moType;
+
+    private String metricsName;
 
     private String moFilter;
 
     private Long sampleInterval;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Metrics metrics;
 
 }

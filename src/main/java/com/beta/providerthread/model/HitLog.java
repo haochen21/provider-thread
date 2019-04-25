@@ -9,9 +9,6 @@ import lombok.*;
 @ToString
 public class HitLog {
 
-    @EqualsAndHashCode.Exclude
-    private String id;
-
     private Mo mo;
 
     private Rule rule;
