@@ -2,5 +2,13 @@ package com.beta.providerthread.cache;
 
 public interface CacheInit {
 
-    void init();
+    Runnable load();
+
+    default void sleep(int span) {
+        try {
+            Thread.sleep(span);
+        } catch (Exception ex) {
+
+        }
+    }
 }
