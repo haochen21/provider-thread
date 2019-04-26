@@ -1,6 +1,8 @@
 package com.beta.providerthread.cache;
 
+import com.beta.providerthread.model.Category;
 import com.beta.providerthread.model.Mo;
+import com.beta.providerthread.model.MoType;
 import com.beta.providerthread.service.MoService;
 import lombok.NoArgsConstructor;
 import org.slf4j.Logger;
@@ -8,14 +10,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-
 
 @Service
 @NoArgsConstructor
-public class MoCache implements CacheInit {
+public class MoCache implements Function<Map<String, List<MoType>>,
+        Map<String, Mo>> {
 
     @Autowired
     private MoService moService;
@@ -28,17 +32,23 @@ public class MoCache implements CacheInit {
         this.moService = moService;
     }
 
-    public Runnable load() {
-        return () -> {
-            logger.info("load mo cache start.......");
-            sleep(1000);
-            cache = moService.findAll().stream().collect(
-                    Collectors.toMap(Mo::getId, Function.identity(), (m1, m2) -> m1, ConcurrentHashMap::new));
-            logger.info("load mo cache end.......");
-        };
-    }
-
     public Mo get(String key) {
         return cache.get(key);
+    }
+
+    @Override
+    public Map<String, Mo> apply(Map<String, List<MoType>> moTypeMap) {
+        logger.info("load mo cache start.......");
+        moTypeMap.forEach((categoryName,moTypes) -> {
+            moTypes.stream().forEach(moType->{
+                logger.info("start find mo,type is: {}.",moType);
+                CompletableFuture<List<Mo>> loadMosFuture = CompletableFuture
+                        .supplyAsync(() -> moService.findByMoType(moType));
+            });
+
+        });
+        logger.info("load mo cache end.......");
+        return cache;
+
     }
 }

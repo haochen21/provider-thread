@@ -15,7 +15,13 @@ public class Mo {
 
     private String name;
 
-    private MoType moType;
+    private String categoryName;
+
+    private String moTypeName;
 
     private String ip;
+
+    @ToString.Exclude
+    private MoType moType;
+
 }
