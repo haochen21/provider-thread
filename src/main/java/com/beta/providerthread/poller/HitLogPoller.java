@@ -1,20 +1,33 @@
 package com.beta.providerthread.poller;
 
+import com.beta.providerthread.cache.AlarmHitLogCache;
+import com.beta.providerthread.cache.OmHitLogCache;
+import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.model.HitLog;
+import com.google.common.eventbus.Subscribe;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.*;
 
 @Service
+@Setter
 @NoArgsConstructor
 public class HitLogPoller {
 
-    private ScheduledExecutorService executor;
+    @Autowired
+    OmHitLogCache omHitLogCache;
+
+    @Autowired
+    AlarmHitLogCache alarmHitLogCache;
+
+    ScheduledExecutorService executor;
 
     private static final Logger logger = LoggerFactory.getLogger(HitLogPoller.class);
 
@@ -22,6 +35,13 @@ public class HitLogPoller {
     public void init() {
         ThreadFactory threadFactory = new HitLogPollerThreadFactory();
         executor = new ScheduledThreadPoolExecutor(1, threadFactory);
+    }
+
+    @Subscribe
+    public void handlerHitLogCache(HitLogCacheEvent hitLogCacheEvent){
+        logger.info("hitLog cache finished....");
+        omHitLogCache.getCache().forEach((k, v) -> logger.info(v.toString()));
+        alarmHitLogCache.getCache().forEach((k, v) -> logger.info(v.toString()));
     }
 
     /**

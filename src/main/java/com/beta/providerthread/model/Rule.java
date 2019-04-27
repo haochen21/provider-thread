@@ -5,15 +5,16 @@ import lombok.*;
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode
+@EqualsAndHashCode(onlyExplicitlyIncluded=true)
 @ToString
 public abstract class Rule {
 
+    @EqualsAndHashCode.Include
     private String id;
 
     private RuleType ruleType;
 
-    private MoType moType;
+    private String metricsId;
 
     private String metricsName;
 
@@ -21,8 +22,6 @@ public abstract class Rule {
 
     private Long sampleInterval;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Metrics metrics;
 
 }

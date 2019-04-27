@@ -1,27 +1,27 @@
 package com.beta.providerthread.model;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode
 @ToString
 public class Mo {
 
     private String id;
 
+    @EqualsAndHashCode.Exclude
     private String name;
 
     private String categoryName;
 
     private String moTypeName;
 
+    @EqualsAndHashCode.Exclude
     private String ip;
 
-    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private MoType moType;
 
 }

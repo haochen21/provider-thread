@@ -27,17 +27,17 @@ public class MockMoTypeService implements MoTypeService {
             Category host = new Category("host");
             Category database = new Category("database");
             Category middleware = new Category("middleware");
-            moTypes.add(new MoType(host,"Windows"));
-            moTypes.add(new MoType(host,"LinuxServer"));
-            moTypes.add(new MoType(host,"IbmAixServer"));
-            moTypes.add(new MoType(database,"Oracle"));
-            moTypes.add(new MoType(database,"Db2"));
-            moTypes.add(new MoType(database,"MySql"));
-            moTypes.add(new MoType(middleware,"WebLogic"));
-            moTypes.add(new MoType(middleware,"Apache"));
+            moTypes.add(new MoType(host, "Windows"));
+            moTypes.add(new MoType(host, "LinuxServer"));
+            moTypes.add(new MoType(host, "IbmAixServer"));
+            moTypes.add(new MoType(database, "Oracle"));
+            moTypes.add(new MoType(database, "Db2"));
+            moTypes.add(new MoType(database, "MySql"));
+            moTypes.add(new MoType(middleware, "WebLogic"));
+            moTypes.add(new MoType(middleware, "Apache"));
             logger.info("find moType time is: {}", sleep);
         } catch (Exception ex) {
-
+            logger.error("find moType error!", ex);
         }
         return moTypes;
     }

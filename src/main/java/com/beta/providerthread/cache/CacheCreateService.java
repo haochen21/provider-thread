@@ -1,8 +1,11 @@
 package com.beta.providerthread.cache;
 
-import com.beta.providerthread.mock.MockMetricsServiceImpl;
-import com.beta.providerthread.mock.MockMoServiceImpl;
-import com.beta.providerthread.mock.MockRuleServiceImpl;
+import com.beta.providerthread.eventbus.EventBusService;
+import com.beta.providerthread.eventbus.HitLogCacheEvent;
+import com.beta.providerthread.mock.*;
+import com.beta.providerthread.model.*;
+import com.beta.providerthread.poller.HitLogPoller;
+import com.beta.providerthread.service.*;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Setter
@@ -17,16 +21,28 @@ import java.util.concurrent.CompletableFuture;
 public class CacheCreateService {
 
     @Autowired
-    private MoCache moCache;
+    MoTypeCache moTypeCache;
 
     @Autowired
-    private MetricsCache metricsCache;
+    MoCache moCache;
 
     @Autowired
-    private RuleCache ruleCache;
+    MetricsCache metricsCache;
 
     @Autowired
-    private HitLogCache hitLogCache;
+    OmRuleCache omRuleCache;
+
+    @Autowired
+    AlarmRuleCache alarmRuleCache;
+
+    @Autowired
+    OmHitLogCache omHitLogCache;
+
+    @Autowired
+    AlarmHitLogCache alarmHitLogCache;
+
+    @Autowired
+    EventBusService eventBusService;
 
     private static final Logger logger = LoggerFactory.getLogger(CacheCreateService.class);
 
@@ -35,32 +51,65 @@ public class CacheCreateService {
     }
 
     @PostConstruct
-    public void init() {
+    public void load() {
+        // 1.装载moType
+        CompletableFuture<Map<String, MoType>> moTypeFuture = CompletableFuture
+                .supplyAsync(moTypeCache);
 
-        // 1.装载MO
-        // 2.同步装载指标和规则
-        // 3.装载hitLog
-        CompletableFuture<Void> cf = CompletableFuture.runAsync(moCache.load())
-                .thenCompose(s -> CompletableFuture.allOf(CompletableFuture.runAsync(metricsCache.load()),
-                        CompletableFuture.runAsync(ruleCache.load())))
-                .thenRun(hitLogCache.load());
+        // 2.装载mo和metrics
+        CompletableFuture<Map<String, Mo>> moFuture = moTypeFuture.thenApplyAsync(moCache);
+        CompletableFuture<Map<String, Metrics>> metricsFuture = moTypeFuture.thenApplyAsync(metricsCache);
+        CompletableFuture<Map<String, Metrics>> cf2 = moFuture.thenCombine(metricsFuture, (s, s2) -> s2);
 
-        cf.join();
+        // 3.装载omRule,omHitLog
+        CompletableFuture<Map<String, OmRule>> omRuleFuture = cf2.thenApplyAsync(omRuleCache);
+        CompletableFuture<Map<String, OmHitLog>> omHitLogFuture = omRuleFuture.thenApplyAsync(omHitLogCache);
+
+        // 3.装载alarmRule,alarmHitLog
+        CompletableFuture<Map<String, AlarmRule>> alarmRuleFuture = cf2.thenApplyAsync(alarmRuleCache);
+        CompletableFuture<Map<String, AlarmHitLog>> alarmHitLogFuture = alarmRuleFuture.thenApplyAsync(alarmHitLogCache);
+
+        CompletableFuture.allOf(omHitLogFuture,alarmHitLogFuture).join();
+
+        eventBusService.getEventBus().post(new HitLogCacheEvent());
     }
 
     public static void main(String[] args) {
-        MoCache moCache = new MoCache(new MockMoServiceImpl());
-        MetricsCache metricsCache = new MetricsCache(new MockMetricsServiceImpl());
-        RuleCache ruleCache = new RuleCache(new MockRuleServiceImpl());
-        HitLogCache hitLogCache = new HitLogCache();
+        EventBusService eventBusService = new EventBusService();
+
+        MoTypeService moTypeService = new MockMoTypeService();
+        MoTypeCache moTypeCache = new MoTypeCache(moTypeService);
+
+        MetricsService metricsService = new MockMetricsServiceImpl();
+        MetricsCache metricsCache = new MetricsCache(metricsService);
+
+        RuleService ruleService = new MockRuleServiceImpl();
+        OmRuleCache omRuleCache = new OmRuleCache(ruleService);
+        AlarmRuleCache alarmRuleCache = new AlarmRuleCache(ruleService);
+
+        MoService moService = new MockMoServiceImpl();
+        MoCache moCache = new MoCache(moService);
+
+        HitLogService hitLogService = new MockHitLogServiceImpl();
+        OmHitLogCache omHitLogCache = new OmHitLogCache(hitLogService, moCache);
+        AlarmHitLogCache alarmHitLogCache = new AlarmHitLogCache(hitLogService, moCache);
+
+        HitLogPoller hitLogPoller = new HitLogPoller();
+        hitLogPoller.setAlarmHitLogCache(alarmHitLogCache);
+        hitLogPoller.setOmHitLogCache(omHitLogCache);
+        eventBusService.getEventBus().register(hitLogPoller);
 
         CacheCreateService service = new CacheCreateService();
+        service.setMoTypeCache(moTypeCache);
         service.setMoCache(moCache);
         service.setMetricsCache(metricsCache);
-        service.setRuleCache(ruleCache);
-        service.setHitLogCache(hitLogCache);
+        service.setOmRuleCache(omRuleCache);
+        service.setOmHitLogCache(omHitLogCache);
+        service.setAlarmRuleCache(alarmRuleCache);
+        service.setAlarmHitLogCache(alarmHitLogCache);
+        service.setEventBusService(eventBusService);
 
-        service.init();
+        service.load();
     }
 
 }

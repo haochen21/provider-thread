@@ -9,9 +9,16 @@ import lombok.*;
 @ToString
 public class Metrics {
 
+    @EqualsAndHashCode.Exclude
+    private String id;
+
     private String name;
 
-    private MoType moType;
+    @EqualsAndHashCode.Exclude
+    private String categoryName;
+
+    @EqualsAndHashCode.Exclude
+    private String moTypeName;
 
     @EqualsAndHashCode.Exclude
     private String provider;
@@ -21,4 +28,6 @@ public class Metrics {
 
     @EqualsAndHashCode.Exclude
     private String serviceUrl;
+
+    private MoType moType;
 }

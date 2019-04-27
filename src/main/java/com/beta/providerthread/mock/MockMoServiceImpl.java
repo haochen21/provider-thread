@@ -1,6 +1,5 @@
 package com.beta.providerthread.mock;
 
-import com.beta.providerthread.model.Category;
 import com.beta.providerthread.model.Mo;
 import com.beta.providerthread.model.MoType;
 import com.beta.providerthread.service.MoService;
@@ -19,9 +18,9 @@ public class MockMoServiceImpl implements MoService {
 
     private static final Logger logger = LoggerFactory.getLogger(MockMoServiceImpl.class);
 
-
     @Override
     public List<Mo> findByMoType(MoType moType) {
+        logger.info("start find mo,type is: {}.", moType);
         List<Mo> mos = new ArrayList<>();
         try {
             int sleep = new Random().nextInt(2000) + 1000;
@@ -34,7 +33,9 @@ public class MockMoServiceImpl implements MoService {
                     mos.addAll(findLinuxServer());
                     break;
                 default:
-                    logger.info("can't match motype: {}", moType.toString());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("can't match motype: {}", moType.toString());
+                    }
                     break;
             }
             logger.info("find mo by moType: {},time is: {}", moType, sleep);
