@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @NoArgsConstructor
-public class PdmSample {
+public class PdmClient {
 
     public SampleValue sample(){
         return null;

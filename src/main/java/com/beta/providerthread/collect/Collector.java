@@ -1,32 +1,14 @@
 package com.beta.providerthread.collect;
 
-import com.beta.providerthread.cache.MetricsValueCache;
-import com.beta.providerthread.model.Metrics;
-import com.beta.providerthread.model.Mo;
-import com.beta.providerthread.model.SampleValue;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+public interface Collector extends Runnable {
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public abstract class Collector implements Runnable {
+    // 任务开始执行前调用
+    void executeBefore(Thread t);
 
-    private Mo mo;
+    // 任务执行完成或发生异常时调用
+    void executeAfter(Throwable t);
 
-    private Metrics metrics;
-
-    private MetricsValueCache metricsValueCache;
-
-    public abstract SampleValue execute();
-
-    @Override
-    public void run() {
-        SampleValue sampleValue = execute();
-        metricsValueCache.put(sampleValue.getMetrics() + "-" + sampleValue.getMo(), sampleValue);
-    }
+    // 线程池队列满，拒绝新加入任务时调用
+    void reject(Runnable r);
 
 }

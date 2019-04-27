@@ -6,6 +6,6 @@ import com.beta.providerthread.model.SampleValue;
 
 public interface MetricsProvider {
 
-    SampleValue sample(Mo mo, Metrics metrics);
+    SampleValue sample(Mo mo, Metrics metrics) throws Exception;
 
 }

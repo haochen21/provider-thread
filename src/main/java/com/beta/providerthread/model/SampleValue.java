@@ -23,9 +23,9 @@ public class SampleValue {
     private Object value;
 
     @ToString.Include
-    private String metrics;
+    private Metrics metrics;
 
     @ToString.Include
-    private String mo;
+    private Mo mo;
 
 }

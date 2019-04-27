@@ -46,7 +46,7 @@ public class CacheCreateService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheCreateService.class);
 
-    public CacheCreateService(){
+    public CacheCreateService() {
 
     }
 
@@ -69,7 +69,7 @@ public class CacheCreateService {
         CompletableFuture<Map<String, AlarmRule>> alarmRuleFuture = cf2.thenApplyAsync(alarmRuleCache);
         CompletableFuture<Map<String, AlarmHitLog>> alarmHitLogFuture = alarmRuleFuture.thenApplyAsync(alarmHitLogCache);
 
-        CompletableFuture.allOf(omHitLogFuture,alarmHitLogFuture).join();
+        CompletableFuture.allOf(omHitLogFuture, alarmHitLogFuture).join();
 
         eventBusService.getEventBus().post(new HitLogCacheEvent());
     }
@@ -90,6 +90,9 @@ public class CacheCreateService {
         MoService moService = new MockMoServiceImpl();
         MoCache moCache = new MoCache(moService);
 
+        MetricsValueCache metricsValueCache = new MetricsValueCache();
+        metricsValueCache.init();
+
         HitLogService hitLogService = new MockHitLogServiceImpl();
         OmHitLogCache omHitLogCache = new OmHitLogCache(hitLogService, moCache);
         AlarmHitLogCache alarmHitLogCache = new AlarmHitLogCache(hitLogService, moCache);
@@ -97,6 +100,8 @@ public class CacheCreateService {
         HitLogPoller hitLogPoller = new HitLogPoller();
         hitLogPoller.setAlarmHitLogCache(alarmHitLogCache);
         hitLogPoller.setOmHitLogCache(omHitLogCache);
+        hitLogPoller.setMetricsValueCache(metricsValueCache);
+        hitLogPoller.init();
         eventBusService.getEventBus().register(hitLogPoller);
 
         CacheCreateService service = new CacheCreateService();
@@ -109,7 +114,16 @@ public class CacheCreateService {
         service.setAlarmHitLogCache(alarmHitLogCache);
         service.setEventBusService(eventBusService);
 
-        service.load();
+        new Thread(() -> service.load()).start();
+
+        while (true) {
+            try {
+                Thread.sleep(600 * 1000);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
     }
 
 }

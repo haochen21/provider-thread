@@ -38,12 +38,7 @@ public class ProviderTimer {
         startThreadIfNeeded();
 
         //超时的回调方法通过另一个线程调用
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                listener.tick();
-            }
-        };
+        Runnable r = ()-> listener.tick();
 
         // 任务指定超时时间，超过这个时间后，定时线程启动超时处理
         ScheduledFuture<?> f = executor.get().getThreadPool().scheduleAtFixedRate(r,

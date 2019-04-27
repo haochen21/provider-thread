@@ -12,10 +12,8 @@ public class ProviderTask<V> extends FutureTask<V> {
 
     private Collector collector;
 
-    public ProviderTask(Runnable runnable) {
-        super(runnable, null);
-        if (runnable instanceof Collector) {
-            this.collector = (Collector) runnable;
-        }
+    public ProviderTask(Collector collector) {
+        super(collector, null);
+        this.collector = collector;
     }
 }

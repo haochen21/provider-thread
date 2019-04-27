@@ -1,5 +1,7 @@
 package com.beta.providerthread.concurrent;
 
+import com.beta.providerthread.collect.Collector;
+import com.beta.providerthread.collect.CollectorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +34,23 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
+        ProviderTask providerTask = (ProviderTask)r;
+        CollectorImpl collector = (CollectorImpl) providerTask.getCollector();
+        collector.executeBefore(t);
+        logger.info("beforeExecute,metrics: {},mo: {}", collector.getRule().getMetrics(), collector.getMo());
     }
 
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
+        ProviderTask providerTask = (ProviderTask)r;
+        CollectorImpl collector = (CollectorImpl) providerTask.getCollector();
+        collector.executeAfter(t);
+        logger.info("afterExecute,metrics: {},mo: {}", collector.getRule().getMetrics(), collector.getMo());
     }
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new ProviderTask<>(runnable);
+        return new ProviderTask<>((Collector) runnable);
     }
 }
