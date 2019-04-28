@@ -18,7 +18,7 @@ public class RpcMetricsProvider implements MetricsProvider {
 
     @Override
     public SampleValue sample(Mo mo, Metrics metrics) {
-        logger.info("mo: {},metrics: {}",mo,metrics);
+        logger.info("start sample,mo: {},metrics: {}",mo,metrics);
         try {
             int sleep = new Random().nextInt(2000) + 1000;
             Thread.sleep(sleep);
@@ -29,6 +29,8 @@ public class RpcMetricsProvider implements MetricsProvider {
             sampleValue.setType(ValueType.INTEGER);
             sampleValue.setValue(sleep);
             sampleValue.setSampleTime(LocalDateTime.now());
+
+            logger.info("end sample,mo: {},metrics: {}",mo,metrics);
 
             return sampleValue;
         }catch (Exception ex) {

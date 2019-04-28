@@ -112,7 +112,7 @@ public class HitLogPoller {
             if (hitLog.getRule().getMetrics().getProviderType() == ProviderType.RPC) {
                 if(hitLog.getRule().getRuleType() == RuleType.OM){
                     CollectorImpl collector = new CollectorImpl(hitLog.getMo(), hitLog.getRule(), metricsValueCache,
-                            threadPool,60*1000);
+                            threadPool,30*1000);
                     collector.collect();
                 }
             }

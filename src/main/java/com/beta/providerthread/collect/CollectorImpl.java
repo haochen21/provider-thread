@@ -88,6 +88,6 @@ public class CollectorImpl implements Collector {
     public void run() {
         RpcMetricsProvider provider = new RpcMetricsProvider();
         SampleValue sampleValue = provider.sample(this.getMo(), this.getRule().getMetrics());
-        return;
+        logger.info(sampleValue.toString());
     }
 }

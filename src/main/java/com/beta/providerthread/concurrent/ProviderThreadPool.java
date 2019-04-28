@@ -9,8 +9,18 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RunnableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ProviderThreadPool extends ThreadPoolExecutor {
+
+    private ThreadLocal<Long> startTime = new ThreadLocal<>();
+
+    private AtomicLong totalServiceTime = new AtomicLong();
+
+    private AtomicLong maxServiceTime = new AtomicLong(0L);
+
+    private AtomicInteger finishedNumer = new AtomicInteger();
 
     private static int CORE_POOL_SIZE = Runtime.getRuntime()
             .availableProcessors();
@@ -34,7 +44,8 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
-        ProviderTask providerTask = (ProviderTask)r;
+        startTime.set(Long.valueOf(System.nanoTime()));
+        ProviderTask providerTask = (ProviderTask) r;
         CollectorImpl collector = (CollectorImpl) providerTask.getCollector();
         collector.executeBefore(t);
         logger.info("beforeExecute,metrics: {},mo: {}", collector.getRule().getMetrics(), collector.getMo());
@@ -43,7 +54,14 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         super.afterExecute(r, t);
-        ProviderTask providerTask = (ProviderTask)r;
+        long serviceTime = System.nanoTime() - startTime.get().longValue();
+        totalServiceTime.addAndGet(serviceTime);
+        if (maxServiceTime.get() < serviceTime) {
+            maxServiceTime.set(serviceTime);
+        }
+        finishedNumer.incrementAndGet();
+
+        ProviderTask providerTask = (ProviderTask) r;
         CollectorImpl collector = (CollectorImpl) providerTask.getCollector();
         collector.executeAfter(t);
         logger.info("afterExecute,metrics: {},mo: {}", collector.getRule().getMetrics(), collector.getMo());
@@ -52,5 +70,13 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
         return new ProviderTask<>((Collector) runnable);
+    }
+
+    public double getAvgServiceTime() {
+        return fromNanoToSeconds(this.totalServiceTime.get()) / (double) this.finishedNumer.get();
+    }
+
+    private long fromNanoToSeconds(long nanos) {
+        return TimeUnit.NANOSECONDS.toSeconds(nanos);
     }
 }
