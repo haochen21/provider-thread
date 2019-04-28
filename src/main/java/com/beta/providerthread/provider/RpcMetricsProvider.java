@@ -34,7 +34,7 @@ public class RpcMetricsProvider implements MetricsProvider {
 
             return sampleValue;
         }catch (Exception ex) {
-            logger.error("find omHitLog error!", ex);
+            logger.error("find omHitLog error!", ex.getMessage());
             return null;
         }
     }

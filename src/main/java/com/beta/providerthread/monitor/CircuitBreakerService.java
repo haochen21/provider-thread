@@ -16,15 +16,14 @@ import java.util.concurrent.TimeoutException;
 /**
  * A CircuitBreaker can be in one of the three states:
  *
- * CLOSED – everything is fine, no short-circuiting involved
- * OPEN – remote server is down, all requests to it are short-circuited
- * HALF_OPEN – a configured amount of time since entering OPEN state has elapsed
- *     and CircuitBreaker allows requests to check if the remote service is back online
+ * CLOSED – 服务正常，不需要进行短路
+ * OPEN – 远程服务宕机，所有请求都短路
+ * HALF_OPEN – 进入打开状态一段时间后，熔断器允许检查远程服务是否恢复
  *
- * the failure rate threshold above which the CircuitBreaker opens and starts short-circuiting calls
- * the wait duration which defines how long the CircuitBreaker should stay open before it switches to half open
- * the size of the ring buffer when the CircuitBreaker is half open or closed
- * a custom Predicate which evaluates if an exception should count as a failure and thus increase the failure rate
+ * 触发熔断的失败率阈值
+ * 熔断器从打开状态到半开状态的等待时间
+ * 熔断器在半开状态时环状缓冲区的大小
+ * 熔断器在关闭状态时环状缓冲区的大小,达到值后才计算失败率阈值
  */
 @Service
 public class CircuitBreakerService {
@@ -38,7 +37,7 @@ public class CircuitBreakerService {
     public CircuitBreakerService(){
         CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofMillis(1000))
+                .waitDurationInOpenState(Duration.ofMillis(60*1000))
                 .ringBufferSizeInHalfOpenState(2)
                 .ringBufferSizeInClosedState(4)
                 .build();

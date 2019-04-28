@@ -1,7 +1,5 @@
 package com.beta.providerthread.concurrent;
 
-import com.beta.providerthread.collect.Collector;
-import com.beta.providerthread.collect.CollectorImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,9 +44,8 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
         super.beforeExecute(t, r);
         startTime.set(Long.valueOf(System.nanoTime()));
         ProviderTask providerTask = (ProviderTask) r;
-        CollectorImpl collector = (CollectorImpl) providerTask.getCollector();
-        collector.executeBefore(t);
-        logger.info("beforeExecute,metrics: {},mo: {}", collector.getRule().getMetrics(), collector.getMo());
+        Collector collector =  providerTask.getCollector();
+        logger.info("beforeExecute,metrics: {},mo: {}", collector.getHitLog().getRule().getMetrics(), collector.getHitLog().getMo());
     }
 
     @Override
@@ -62,14 +59,13 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
         finishedNumer.incrementAndGet();
 
         ProviderTask providerTask = (ProviderTask) r;
-        CollectorImpl collector = (CollectorImpl) providerTask.getCollector();
-        collector.executeAfter(t);
-        logger.info("afterExecute,metrics: {},mo: {}", collector.getRule().getMetrics(), collector.getMo());
+        Collector collector = providerTask.getCollector();
+        logger.info("afterExecute,metrics: {},mo: {}", collector.getHitLog().getRule().getMetrics(), collector.getHitLog().getMo());
     }
 
     @Override
     protected <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new ProviderTask<>((Collector) runnable);
+        return new ProviderTask<>((Collector)runnable);
     }
 
     public double getAvgServiceTime() {

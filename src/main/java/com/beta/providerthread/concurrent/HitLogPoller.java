@@ -1,15 +1,15 @@
-package com.beta.providerthread.poller;
+package com.beta.providerthread.concurrent;
 
 import com.beta.providerthread.cache.AlarmHitLogCache;
 import com.beta.providerthread.cache.MetricsValueCache;
 import com.beta.providerthread.cache.OmHitLogCache;
-import com.beta.providerthread.collect.CollectorImpl;
-import com.beta.providerthread.concurrent.ProviderThreadPool;
 import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.model.HitLog;
 import com.beta.providerthread.model.ProviderType;
 import com.beta.providerthread.model.RuleType;
+import com.beta.providerthread.monitor.CircuitBreakerService;
 import com.google.common.eventbus.Subscribe;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 
 @Service
 @Setter
@@ -35,6 +36,9 @@ public class HitLogPoller {
 
     @Autowired
     MetricsValueCache metricsValueCache;
+
+    @Autowired
+    CircuitBreakerService circuitBreakerService;
 
     ScheduledThreadPoolExecutor executor;
 
@@ -110,10 +114,19 @@ public class HitLogPoller {
         public void run() {
             logger.info("hitLogTask: {}", hitLog);
             if (hitLog.getRule().getMetrics().getProviderType() == ProviderType.RPC) {
-                if(hitLog.getRule().getRuleType() == RuleType.OM){
-                    CollectorImpl collector = new CollectorImpl(hitLog.getMo(), hitLog.getRule(), metricsValueCache,
-                            threadPool,30*1000);
-                    collector.collect();
+                if (hitLog.getRule().getRuleType() == RuleType.OM) {
+                    Collector collector = new Collector(metricsValueCache,
+                            threadPool, circuitBreakerService, hitLog);
+
+                    CircuitBreaker circuitBreaker = circuitBreakerService.createCircuitBreaker(hitLog.getRule().getMetrics().getName());
+                    // 这里不捕获异常，会停止定时线程
+                    try{
+                        Consumer<Integer> consumer = CircuitBreaker.decorateConsumer(circuitBreaker,collector);
+                        consumer.accept(6*100);
+                    }catch (Exception ex){
+                        //printStackTrace();
+                    }
+                    logger.info(circuitBreaker.getState().toString());
                 }
             }
 

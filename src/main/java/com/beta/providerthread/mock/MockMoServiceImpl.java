@@ -23,7 +23,7 @@ public class MockMoServiceImpl implements MoService {
         logger.info("start find mo,type is: {}.", moType);
         List<Mo> mos = new ArrayList<>();
         try {
-            int sleep = new Random().nextInt(2000) + 1000;
+            int sleep = new Random().nextInt(100) + 100;
             Thread.sleep(sleep);
             switch (moType.getName()) {
                 case "Windows":

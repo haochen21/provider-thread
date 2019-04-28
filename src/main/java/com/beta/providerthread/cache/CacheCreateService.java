@@ -4,7 +4,8 @@ import com.beta.providerthread.eventbus.EventBusService;
 import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.mock.*;
 import com.beta.providerthread.model.*;
-import com.beta.providerthread.poller.HitLogPoller;
+import com.beta.providerthread.monitor.CircuitBreakerService;
+import com.beta.providerthread.concurrent.HitLogPoller;
 import com.beta.providerthread.service.*;
 import lombok.Setter;
 import org.slf4j.Logger;
@@ -97,12 +98,17 @@ public class CacheCreateService {
         OmHitLogCache omHitLogCache = new OmHitLogCache(hitLogService, moCache);
         AlarmHitLogCache alarmHitLogCache = new AlarmHitLogCache(hitLogService, moCache);
 
+        CircuitBreakerService circuitBreakerService = new CircuitBreakerService();
+
         HitLogPoller hitLogPoller = new HitLogPoller();
         hitLogPoller.setAlarmHitLogCache(alarmHitLogCache);
         hitLogPoller.setOmHitLogCache(omHitLogCache);
         hitLogPoller.setMetricsValueCache(metricsValueCache);
+        hitLogPoller.setCircuitBreakerService(circuitBreakerService);
+
         hitLogPoller.init();
         eventBusService.getEventBus().register(hitLogPoller);
+
 
         CacheCreateService service = new CacheCreateService();
         service.setMoTypeCache(moTypeCache);

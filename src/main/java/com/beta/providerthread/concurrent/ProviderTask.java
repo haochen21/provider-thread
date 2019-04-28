@@ -1,6 +1,5 @@
 package com.beta.providerthread.concurrent;
 
-import com.beta.providerthread.collect.Collector;
 import lombok.Getter;
 import lombok.Setter;
 
