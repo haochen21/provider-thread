@@ -3,16 +3,12 @@ package com.beta.providerthread.monitor;
 import com.beta.providerthread.model.Metrics;
 import com.beta.providerthread.model.Mo;
 import com.beta.providerthread.model.ProviderType;
-import com.beta.providerthread.model.SampleValue;
 import com.beta.providerthread.provider.RpcMetricsProvider;
 import com.beta.providerthread.provider.TimeoutMetricProvider;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.vavr.CheckedFunction0;
 import io.vavr.control.Try;
 import org.junit.Test;
-
-import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,7 +17,7 @@ public class CircuitBreakerServiceTest {
     @Test
     public void testCircuitBreaker() throws Exception {
         CircuitBreakerService service = new CircuitBreakerService();
-        CircuitBreaker circuitBreaker = service.createCircuitBreaker("windowsProcess");
+        CircuitBreaker circuitBreaker = service.getCircuitBreaker("windowsProcess");
 
         RpcMetricsProvider provider = new RpcMetricsProvider();
         TimeoutMetricProvider timeoutMetricProvider = new TimeoutMetricProvider();

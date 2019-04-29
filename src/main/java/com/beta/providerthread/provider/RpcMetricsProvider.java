@@ -22,7 +22,7 @@ public class RpcMetricsProvider implements MetricsProvider {
         try {
             int sleep = new Random().nextInt(2000) + 1000;
             Thread.sleep(sleep);
-
+            Thread.sleep(40*1000);
             SampleValue sampleValue = new SampleValue();
             sampleValue.setMo(mo);
             sampleValue.setMetrics(metrics);

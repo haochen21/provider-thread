@@ -8,8 +8,8 @@ import com.beta.providerthread.model.HitLog;
 import com.beta.providerthread.model.ProviderType;
 import com.beta.providerthread.model.RuleType;
 import com.beta.providerthread.monitor.CircuitBreakerService;
+import com.beta.providerthread.monitor.SemaphoreService;
 import com.google.common.eventbus.Subscribe;
-import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -21,7 +21,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import java.util.concurrent.*;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Setter
@@ -39,6 +39,9 @@ public class HitLogPoller {
 
     @Autowired
     CircuitBreakerService circuitBreakerService;
+
+    @Autowired
+    SemaphoreService semaphoreService;
 
     ScheduledThreadPoolExecutor executor;
 
@@ -93,13 +96,15 @@ public class HitLogPoller {
 
     private static class HitLogPollerThreadFactory implements ThreadFactory {
 
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+
         private static final String HitLogPoolerThreadName = "HitLogPoller";
 
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
 
         public Thread newThread(Runnable r) {
             Thread thread = defaultFactory.newThread(r);
-            thread.setName(HitLogPoolerThreadName);
+            thread.setName(HitLogPoolerThreadName + "-" + threadNumber.getAndIncrement());
             thread.setDaemon(true);
             return thread;
         }
@@ -115,18 +120,11 @@ public class HitLogPoller {
             logger.info("hitLogTask: {}", hitLog);
             if (hitLog.getRule().getMetrics().getProviderType() == ProviderType.RPC) {
                 if (hitLog.getRule().getRuleType() == RuleType.OM) {
+                    // 把任务加入线程池
                     Collector collector = new Collector(metricsValueCache,
-                            threadPool, circuitBreakerService, hitLog);
-
-                    CircuitBreaker circuitBreaker = circuitBreakerService.createCircuitBreaker(hitLog.getRule().getMetrics().getName());
-                    // 这里不捕获异常，会停止定时线程
-                    try{
-                        Consumer<Integer> consumer = CircuitBreaker.decorateConsumer(circuitBreaker,collector);
-                        consumer.accept(6*100);
-                    }catch (Exception ex){
-                        //printStackTrace();
-                    }
-                    logger.info(circuitBreaker.getState().toString());
+                            circuitBreakerService, semaphoreService, hitLog);
+                    threadPool.submit(collector);
+                    logger.info("poller finish.................");
                 }
             }
 

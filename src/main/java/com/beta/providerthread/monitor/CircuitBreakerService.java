@@ -46,7 +46,7 @@ public class CircuitBreakerService {
         circuitBreakerMap = new ConcurrentHashMap<>();
     }
 
-    public CircuitBreaker createCircuitBreaker(String name){
+    public CircuitBreaker getCircuitBreaker(String name){
         if(!circuitBreakerMap.containsKey(name)){
             CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(name);
             circuitBreakerMap.putIfAbsent(name,circuitBreaker);
@@ -54,7 +54,4 @@ public class CircuitBreakerService {
         return circuitBreakerMap.get(name);
     }
 
-    public static void main(String[] args) {
-
-    }
 }
