@@ -7,7 +7,10 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ProviderThreadPool extends ThreadPoolExecutor {
+/**
+ * I/O阻塞的任务线程池
+ */
+public class RpcThreadPool extends ThreadPoolExecutor {
 
     private ThreadLocal<Long> startTime = new ThreadLocal<>();
 
@@ -17,23 +20,18 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
 
     private AtomicInteger finishedNumer = new AtomicInteger();
 
-    private static int CORE_POOL_SIZE = Runtime.getRuntime()
-            .availableProcessors();
-
-    private static int MAXIMUM_POOL_SIZE = Runtime.getRuntime()
-            .availableProcessors();
-
     private static RejectedTaskController REJECTED_TASK_CONTROLLER
             = new RejectedTaskController();
 
     private static long KEEP_ALIVE_TIME = 10;
 
-    private static final Logger logger = LoggerFactory.getLogger(ProviderThreadPool.class);
+    private static final Logger logger = LoggerFactory.getLogger(RpcThreadPool.class);
 
-    public ProviderThreadPool() {
-        super(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_TIME,
-                TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+    public RpcThreadPool(int corePoolSize,int maxPoolSize,int keepAliveTime,int queueLength) {
+        super(corePoolSize, maxPoolSize, keepAliveTime,
+                TimeUnit.SECONDS, new LinkedBlockingQueue<>(queueLength),
                 REJECTED_TASK_CONTROLLER);
+        this.setThreadFactory(new RpcThreadFactory());
     }
 
     @Override
@@ -55,21 +53,6 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
         }
         finishedNumer.incrementAndGet();
 
-        // 线程池在执行任务时捕获了所有异常，并将此异常加入结果中,线程池中的所有线程都将无法捕获到抛出的异常。
-        // 异常是封装在此时的Future对象中的
-        // 任务执行完成获取其结果时,Future.get()会抛出此RuntimeException。
-        if (t == null && r instanceof Future<?>) {
-            try {
-                Future<?> future = (Future<?>) r;
-                if (future.isDone())
-                    future.get();
-            } catch (Exception ex) {
-                t = ex;
-            }
-        }
-        if (t != null)
-            logger.error(t.getMessage(), t);
-
         ProviderTask providerTask = (ProviderTask) r;
         Collector collector = providerTask.getCollector();
         logger.info("afterExecute,metrics: {},mo: {}", collector.getHitLog().getRule().getMetrics(), collector.getHitLog().getMo());
@@ -86,5 +69,21 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
 
     private long fromNanoToSeconds(long nanos) {
         return TimeUnit.NANOSECONDS.toSeconds(nanos);
+    }
+
+    private static class RpcThreadFactory implements ThreadFactory {
+
+        private final AtomicInteger poolNumber = new AtomicInteger(1);
+
+        private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+        public Thread newThread(Runnable r) {
+            Thread thread = defaultFactory.newThread(r);
+            thread.setName("rpcPool-" +
+                    poolNumber.getAndIncrement() +
+                    "-thread-");
+            thread.setDaemon(true);
+            return thread;
+        }
     }
 }
