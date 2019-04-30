@@ -1,4 +1,4 @@
-package com.beta.providerthread.monitor;
+package com.beta.providerthread.service;
 
 import org.springframework.stereotype.Service;
 

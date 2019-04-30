@@ -5,6 +5,7 @@ import com.beta.providerthread.model.Mo;
 import com.beta.providerthread.model.ProviderType;
 import com.beta.providerthread.provider.RpcMetricsProvider;
 import com.beta.providerthread.provider.TimeoutMetricProvider;
+import com.beta.providerthread.service.CircuitBreakerService;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.vavr.CheckedFunction0;
 import io.vavr.control.Try;
@@ -19,7 +20,7 @@ public class CircuitBreakerServiceTest {
         CircuitBreakerService service = new CircuitBreakerService();
         CircuitBreaker circuitBreaker = service.getCircuitBreaker("windowsProcess");
 
-        RpcMetricsProvider provider = new RpcMetricsProvider();
+        RpcMetricsProvider provider = new RpcMetricsProvider(null);
         TimeoutMetricProvider timeoutMetricProvider = new TimeoutMetricProvider();
 
         Mo mo = new Mo();

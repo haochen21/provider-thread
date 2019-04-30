@@ -41,7 +41,7 @@ public class MockRuleServiceImpl implements RuleService {
             windowsProcessOmRule.setRuleType(RuleType.OM);
             windowsProcessOmRule.setMetricsName("windowsProcess");
             windowsProcessOmRule.setMoFilter("1=1");
-            windowsProcessOmRule.setSampleInterval(10L);
+            windowsProcessOmRule.setSampleInterval(20L);
             omRules.add(windowsProcessOmRule);
             logger.info("find omRule time is: {}", sleep);
         }catch (Exception ex) {

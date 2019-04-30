@@ -68,7 +68,7 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
             }
         }
         if (t != null)
-            logger.error(t.getMessage(), t);
+            logger.error("#####################");
 
         ProviderTask providerTask = (ProviderTask) r;
         Collector collector = providerTask.getCollector();

@@ -1,4 +1,4 @@
-package com.beta.providerthread.monitor;
+package com.beta.providerthread.service;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -7,10 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -39,7 +37,7 @@ public class CircuitBreakerService {
                 .failureRateThreshold(50)
                 .waitDurationInOpenState(Duration.ofMillis(60*1000))
                 .ringBufferSizeInHalfOpenState(2)
-                .ringBufferSizeInClosedState(4)
+                .ringBufferSizeInClosedState(2)
                 .build();
         circuitBreakerRegistry = CircuitBreakerRegistry.of(circuitBreakerConfig);
 

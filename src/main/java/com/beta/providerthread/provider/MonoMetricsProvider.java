@@ -5,8 +5,7 @@ import com.beta.providerthread.model.Mo;
 import com.beta.providerthread.model.SampleValue;
 import reactor.core.publisher.Mono;
 
-public interface MetricsProvider {
+public interface MonoMetricsProvider {
 
-    SampleValue sample(Mo mo, Metrics metrics);
-
+    Mono<SampleValue> sample(Mo mo, Metrics metrics);
 }

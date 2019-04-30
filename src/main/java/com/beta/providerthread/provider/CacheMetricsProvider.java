@@ -1,6 +1,5 @@
 package com.beta.providerthread.provider;
 
-import com.beta.providerthread.cache.AlarmHitLogCache;
 import com.beta.providerthread.model.Metrics;
 import com.beta.providerthread.model.Mo;
 import com.beta.providerthread.model.SampleValue;
@@ -19,7 +18,7 @@ public class CacheMetricsProvider implements MetricsProvider {
 
     @Override
     public SampleValue sample(Mo mo, Metrics metrics) {
-        logger.info("mo: {},metrics: {}",mo,metrics);
+        logger.info("start sample,mo: {},metrics: {}", mo, metrics);
         try {
             int sleep = new Random().nextInt(2000) + 1000;
             Thread.sleep(sleep);
@@ -31,9 +30,10 @@ public class CacheMetricsProvider implements MetricsProvider {
             sampleValue.setValue(sleep);
             sampleValue.setSampleTime(LocalDateTime.now());
 
+            logger.info("end sample,mo: {},metrics: {}", mo, metrics);
             return sampleValue;
+
         }catch (Exception ex) {
-            logger.error("find omHitLog error!", ex);
             return null;
         }
     }
