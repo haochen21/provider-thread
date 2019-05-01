@@ -7,6 +7,7 @@ import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.model.HitLog;
 import com.beta.providerthread.model.ProviderType;
 import com.beta.providerthread.model.RuleType;
+import com.beta.providerthread.monitor.MetricsMonitorService;
 import com.beta.providerthread.service.CircuitBreakerService;
 import com.beta.providerthread.service.SemaphoreService;
 import com.google.common.eventbus.Subscribe;
@@ -43,6 +44,9 @@ public class HitLogPoller {
     @Autowired
     SemaphoreService semaphoreService;
 
+    @Autowired
+    MetricsMonitorService metricsMonitorService;
+
     ScheduledThreadPoolExecutor executor;
 
     ProviderThreadPool threadPool;
@@ -62,7 +66,7 @@ public class HitLogPoller {
 
         futureMap = new ConcurrentHashMap<>();
 
-        threadPool = new ProviderThreadPool();
+        threadPool = new ProviderThreadPool(metricsMonitorService);
 
         restTemplate = new RestTemplate();
     }
@@ -122,7 +126,7 @@ public class HitLogPoller {
                 if (hitLog.getRule().getRuleType() == RuleType.OM) {
                     // 把任务加入线程池
                     Collector collector = new Collector(metricsValueCache,
-                            circuitBreakerService, semaphoreService, hitLog);
+                            circuitBreakerService, semaphoreService, hitLog, 2);
                     threadPool.submit(collector);
                     logger.info("poller finish.................");
                 }

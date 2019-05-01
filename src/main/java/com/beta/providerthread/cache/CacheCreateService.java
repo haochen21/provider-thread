@@ -4,6 +4,7 @@ import com.beta.providerthread.eventbus.EventBusService;
 import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.mock.*;
 import com.beta.providerthread.model.*;
+import com.beta.providerthread.monitor.MetricsMonitorService;
 import com.beta.providerthread.service.CircuitBreakerService;
 import com.beta.providerthread.concurrent.HitLogPoller;
 import com.beta.providerthread.service.SemaphoreService;
@@ -102,12 +103,15 @@ public class CacheCreateService {
         CircuitBreakerService circuitBreakerService = new CircuitBreakerService();
         SemaphoreService semaphoreService = new SemaphoreService();
 
+        MetricsMonitorService metricsMonitorService = new MetricsMonitorService();
+
         HitLogPoller hitLogPoller = new HitLogPoller();
         hitLogPoller.setAlarmHitLogCache(alarmHitLogCache);
         hitLogPoller.setOmHitLogCache(omHitLogCache);
         hitLogPoller.setMetricsValueCache(metricsValueCache);
         hitLogPoller.setCircuitBreakerService(circuitBreakerService);
         hitLogPoller.setSemaphoreService(semaphoreService);
+        hitLogPoller.setMetricsMonitorService(metricsMonitorService);
 
         hitLogPoller.init();
         eventBusService.getEventBus().register(hitLogPoller);

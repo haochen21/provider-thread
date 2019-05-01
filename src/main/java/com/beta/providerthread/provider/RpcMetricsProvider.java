@@ -8,12 +8,11 @@ import com.beta.providerthread.service.WebClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 
 @Service
-public class RpcMetricsProvider implements MonoMetricsProvider {
+public class RpcMetricsProvider implements MetricsProvider {
 
     private WebClientService webClientService;
 
@@ -24,7 +23,7 @@ public class RpcMetricsProvider implements MonoMetricsProvider {
     }
 
     @Override
-    public Mono<SampleValue> sample(Mo mo, Metrics metrics) {
+    public SampleValue sample(Mo mo, Metrics metrics) {
         logger.info("start sample,mo: {},metrics: {}", mo, metrics);
 
         return this.webClientService.getPdmWebclient()
@@ -41,6 +40,6 @@ public class RpcMetricsProvider implements MonoMetricsProvider {
                     sampleValue.setValue(value);
                     sampleValue.setSampleTime(LocalDateTime.now());
                     return sampleValue;
-                });
+                }).block();
     }
 }

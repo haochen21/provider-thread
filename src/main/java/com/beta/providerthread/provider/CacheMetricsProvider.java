@@ -21,8 +21,8 @@ public class CacheMetricsProvider implements MetricsProvider {
         logger.info("start sample,mo: {},metrics: {}", mo, metrics);
         try {
             int sleep = new Random().nextInt(2000) + 1000;
+            logger.info("sleep is : {}", sleep);
             Thread.sleep(sleep);
-
             SampleValue sampleValue = new SampleValue();
             sampleValue.setMo(mo);
             sampleValue.setMetrics(metrics);
