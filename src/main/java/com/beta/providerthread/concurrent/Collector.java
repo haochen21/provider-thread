@@ -18,16 +18,15 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.util.concurrent.Callable;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 @Setter
 @Getter
-public class Collector implements Runnable {
+public class Collector implements Runnable, Comparable<Collector> {
 
     private MetricsValueCache metricsValueCache;
 
@@ -41,6 +40,8 @@ public class Collector implements Runnable {
 
     private int bizTimeout;
 
+    private int priority;
+
     private boolean isTimeout = false;
 
     private boolean isCircuitBreakOpen = false;
@@ -48,43 +49,43 @@ public class Collector implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(Collector.class);
 
     public Collector(MetricsValueCache metricsValueCache, CircuitBreakerService circuitBreakerService,
-                     SemaphoreService semaphoreService, HitLog hitLog, int bizTimeout) {
+                     SemaphoreService semaphoreService, HitLog hitLog, int bizTimeout,int priority) {
         this.metricsValueCache = metricsValueCache;
         this.circuitBreakerService = circuitBreakerService;
         this.semaphoreService = semaphoreService;
         this.hitLog = hitLog;
         this.bizTimeout = bizTimeout;
+        this.priority = priority;
     }
 
 
     @Override
     public void run() {
-        Semaphore semaphore = semaphoreService.getSemaphore(hitLog.getRule().getMetrics());
+        Semaphore semaphore = semaphoreService.getSemaphore(hitLog);
 
         if (semaphore.tryAcquire()) {
             CircuitBreaker circuitBreaker = circuitBreakerService.
                     getCircuitBreaker(hitLog.getRule().getMetrics());
 
-            CacheMetricsProvider provider = new CacheMetricsProvider();
-            //TimeoutMetricProvider provider = new TimeoutMetricProvider();
+            //CacheMetricsProvider provider = new CacheMetricsProvider();
+            TimeoutMetricProvider provider = new TimeoutMetricProvider();
 
             // 如果upstream返回一个mono,在断路状态下，upstream还会被调用
-            Supplier<SampleValue> supplier = () -> provider.sample(this.hitLog.getMo(), this.hitLog.getRule().getMetrics());
-            Mono.fromSupplier(supplier)
+            Callable<SampleValue> callable = () -> provider.sample(this.hitLog.getMo(), this.hitLog.getRule().getMetrics());
+            Mono.fromCallable(callable)
                     .transform(CircuitBreakerOperator.of(circuitBreaker))
                     .timeout(Duration.ofSeconds(bizTimeout))
-                    .doOnError(TimeoutException.class, throwable -> {
-                        // 这里抛出的异常不在线程池线程里，线程池afterExecute获取不到
-                        // 业务超时异常，这里手动触发电路器异常统计
-                        circuitBreaker.onError(
-                                bizTimeout * 1000, throwable);
-                        this.isTimeout = true;
-                    })
-                    .doOnError(CircuitBreakerOpenException.class, throwable -> {
-                        // 这里抛出的异常不在线程池线程里，线程池afterExecute获取不到
-                        circuitBreaker.onError(
-                                bizTimeout * 1000, throwable);
-                        this.isCircuitBreakOpen= true;
+                    .doOnError(error -> {
+                        // circuitBreak抛出的异常不在线程池线程里，线程池afterExecute获取不到
+                        if (error instanceof TimeoutException) {
+                            // 这里抛出的异常不在线程池线程里，线程池afterExecute获取不到
+                            // 业务超时异常，这里手动触发电路器异常统计
+                            circuitBreaker.onError(
+                                    bizTimeout * 1000, error);
+                            this.isTimeout = true;
+                        } else if (error instanceof CircuitBreakerOpenException) {
+                            this.isCircuitBreakOpen = true;
+                        }
                     })
                     .subscribe(sampleValue -> {
                         semaphore.release();
@@ -100,10 +101,20 @@ public class Collector implements Runnable {
         }
     }
 
+    @Override
+    public int compareTo(Collector other) {
+        if (this == other) {
+            return 0;
+        }
+        if (other == null) {
+            return -1;         }
+        return this.priority - other.priority;
+    }
+
     private void postHandler(SampleValue sampleValue) {
         logger.info("post handler..................");
         String key = sampleValue.getMo().getMoType() + "." + sampleValue.getMetrics().getName() + sampleValue.getMo().getId();
-        metricsValueCache.put(key,sampleValue);
+        metricsValueCache.put(key, sampleValue);
     }
 
     // 只能抛出RuntimeException,这里封装一下,让编译器编译通过

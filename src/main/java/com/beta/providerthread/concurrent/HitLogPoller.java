@@ -126,9 +126,9 @@ public class HitLogPoller {
                 if (hitLog.getRule().getRuleType() == RuleType.OM) {
                     // 把任务加入线程池
                     Collector collector = new Collector(metricsValueCache,
-                            circuitBreakerService, semaphoreService, hitLog, 2);
+                            circuitBreakerService, semaphoreService, hitLog, 2,0);
+                    // 把任务提交到线程池，后面任务的处理与当前线程没有关系
                     threadPool.submit(collector);
-                    logger.info("poller finish.................");
                 }
             }
 

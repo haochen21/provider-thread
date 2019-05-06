@@ -1,5 +1,6 @@
 package com.beta.providerthread.service;
 
+import com.beta.providerthread.model.HitLog;
 import com.beta.providerthread.model.Metrics;
 import com.beta.providerthread.monitor.MetricsMonitorInfo;
 import org.springframework.stereotype.Service;
@@ -16,8 +17,8 @@ public class SemaphoreService {
         cache = new ConcurrentHashMap<>();
     }
 
-    public Semaphore getSemaphore(Metrics metrics){
-        String key = metrics.getMoType() + "." + metrics.getName();
+    public Semaphore getSemaphore(HitLog hitLog){
+        String key = hitLog.getRuleId()+"."+hitLog.getMoId();
         return cache.computeIfAbsent(key,
                 k -> new Semaphore(1));
     }

@@ -37,7 +37,7 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
 
     public ProviderThreadPool(MetricsMonitorService metricsMonitorService) {
         super(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_TIME,
-                TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
+                TimeUnit.SECONDS, new PriorityBlockingQueue<>(),
                 REJECTED_TASK_CONTROLLER);
         this.metricsMonitorService = metricsMonitorService;
     }
@@ -70,9 +70,9 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
             t = new CircuitBreakerOpenException("CircuitBreaker '" + collector.getHitLog().getRule().getMetricsName() + "' is open");
         } else if (t == null && r instanceof Future<?>) {
             // MetricsProvider.sample()抛出的异常
-            // 线程池在执行任务时捕获了所有异常，并将此异常加入结果中,线程池中的所有线程都将无法捕获到抛出的异常。
-            // 异常是封装在此时的Future对象中的
-            // 任务执行完成获取其结果时,Future.get()会抛出此RuntimeException。
+            // 线程池在执行任务时需要捕获所有异常，否则会造成线程终止。
+            // 捕获异常后，加入future中,所以异常是封装在Future对象中的。
+            // 任务执行完成获取其结果时,Future.get()会抛出相关异常。
             try {
                 Future<?> future = (Future<?>) r;
                 if (future.isDone())
