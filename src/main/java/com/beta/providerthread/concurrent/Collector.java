@@ -87,11 +87,10 @@ public class Collector implements Runnable, Comparable<Collector> {
                             this.isCircuitBreakOpen = true;
                         }
                     })
+                    .doFinally(signalType -> semaphore.release())
                     .subscribe(sampleValue -> {
-                        semaphore.release();
                         postHandler(sampleValue);
                     }, throwable -> {
-                        semaphore.release();
                         //这里把sample()异常重新抛出，让线程池的afterExecute进行处理，实现统计功能
                         doThrow(throwable);
                     });

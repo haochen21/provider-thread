@@ -35,11 +35,18 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(ProviderThreadPool.class);
 
-    public ProviderThreadPool(MetricsMonitorService metricsMonitorService) {
-        super(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_TIME,
-                TimeUnit.SECONDS, new PriorityBlockingQueue<>(),
+    public ProviderThreadPool(int corePoolSize, int maxPoolSize, long keepAliveTime,
+                              int queueLength, MetricsMonitorService metricsMonitorService) {
+        super(corePoolSize, maxPoolSize, keepAliveTime,
+                TimeUnit.SECONDS, new PriorityBlockingQueue<>(queueLength),
                 REJECTED_TASK_CONTROLLER);
         this.metricsMonitorService = metricsMonitorService;
+        this.setThreadFactory(new ProviderThreadFactory());
+    }
+
+    public ProviderThreadPool(MetricsMonitorService metricsMonitorService) {
+        this(CORE_POOL_SIZE, MAXIMUM_POOL_SIZE, KEEP_ALIVE_TIME, 100,
+                metricsMonitorService);
     }
 
     @Override
@@ -83,14 +90,14 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
         }
         Metrics metrics = collector.getHitLog().getRule().getMetrics();
         if (t != null) {
-            if(t instanceof TimeoutException){
+            if (t instanceof TimeoutException) {
                 metricsMonitorService.getMetricsMonitorInfo(metrics).getTimeout().addAndGet(1);
-            }else if(t instanceof CircuitBreakerOpenException){
+            } else if (t instanceof CircuitBreakerOpenException) {
                 metricsMonitorService.getMetricsMonitorInfo(metrics).getNotPermitted().addAndGet(1);
-            }else {
+            } else {
                 metricsMonitorService.getMetricsMonitorInfo(metrics).getError().addAndGet(1);
             }
-        }else {
+        } else {
             metricsMonitorService.getMetricsMonitorInfo(metrics).getSuccess().addAndGet(1);
         }
         metricsMonitorService.getMetricsMonitorInfo(metrics).getServiceTime().addAndGet(serviceTime);
@@ -109,5 +116,21 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
 
     private long fromNanoToSeconds(long nanos) {
         return TimeUnit.NANOSECONDS.toSeconds(nanos);
+    }
+
+    private static class ProviderThreadFactory implements ThreadFactory {
+
+        private final AtomicInteger poolNumber = new AtomicInteger(1);
+
+        private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+        public Thread newThread(Runnable r) {
+            Thread thread = defaultFactory.newThread(r);
+            thread.setName("providerPool-" +
+                    poolNumber.getAndIncrement() +
+                    "-thread-");
+            thread.setDaemon(true);
+            return thread;
+        }
     }
 }

@@ -3,6 +3,7 @@ package com.beta.providerthread.concurrent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -15,7 +16,22 @@ public class RejectedTaskController implements RejectedExecutionHandler {
         if (task instanceof Collector) {
             ProviderTask providerTask = (ProviderTask) task;
             Collector collector = providerTask.getCollector();
-            logger.info("reject,{}",collector.getHitLog().toString());
+            logger.info("reject,{}", collector.getHitLog().toString());
+            do {
+                ProviderTask[] providerTasks = (ProviderTask[]) executor.getQueue().toArray();
+                Arrays.sort(providerTasks);
+                int compare = providerTask.compareTo(providerTasks[providerTasks.length - 1]);
+                if (compare < 0) {
+                    logger.info("priority: {},replace priority: {}", collector.getPriority(),
+                            providerTasks[providerTasks.length - 1].getCollector().getPriority());
+                    executor.getQueue().remove(providerTasks[providerTasks.length - 1]);
+                    executor.getQueue().offer(task);
+                } else {
+                    logger.info("priority: {},can't replace priority: {}", collector.getPriority(),
+                            providerTasks[providerTasks.length - 1].getCollector().getPriority());
+                    break;
+                }
+            } while (!executor.getQueue().offer(task));
         }
     }
 }
