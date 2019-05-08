@@ -40,7 +40,7 @@ public class Collector implements Runnable, Comparable<Collector> {
 
     private int bizTimeout;
 
-    private int priority;
+    private Priority priority;
 
     private boolean isTimeout = false;
 
@@ -49,7 +49,7 @@ public class Collector implements Runnable, Comparable<Collector> {
     private static final Logger logger = LoggerFactory.getLogger(Collector.class);
 
     public Collector(MetricsValueCache metricsValueCache, CircuitBreakerService circuitBreakerService,
-                     SemaphoreService semaphoreService, HitLog hitLog, int bizTimeout,int priority) {
+                     SemaphoreService semaphoreService, HitLog hitLog, int bizTimeout, Priority priority) {
         this.metricsValueCache = metricsValueCache;
         this.circuitBreakerService = circuitBreakerService;
         this.semaphoreService = semaphoreService;
@@ -106,8 +106,9 @@ public class Collector implements Runnable, Comparable<Collector> {
             return 0;
         }
         if (other == null) {
-            return -1;         }
-        return this.priority - other.priority;
+            return -1;
+        }
+        return this.priority.compare(other.priority);
     }
 
     private void postHandler(SampleValue sampleValue) {
@@ -119,6 +120,34 @@ public class Collector implements Runnable, Comparable<Collector> {
     // 只能抛出RuntimeException,这里封装一下,让编译器编译通过
     private <E extends Throwable> void doThrow(Throwable t) throws E {
         throw (E) t;
+    }
+
+    public enum Priority {
+        URGENT("Urgent", 10),
+        HIGH("High", 5),
+        MEDIUM("Medium", 2),
+        LOW("Low", 0),
+        DEFAULT("Default", -1);
+
+        @Getter
+        private final String name;
+
+        private final int value;
+
+        Priority(String name, int value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return getName();
+        }
+
+        public int compare(Priority that) {
+            // 顺序是降序
+            return that.value - this.value;
+        }
     }
 
 }

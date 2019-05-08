@@ -18,14 +18,13 @@ public class RejectedTaskController implements RejectedExecutionHandler {
             Collector collector = providerTask.getCollector();
             logger.info("reject,{}", collector.getHitLog().toString());
             do {
-                ProviderTask[] providerTasks = (ProviderTask[]) executor.getQueue().toArray();
+                ProviderTask[] providerTasks = executor.getQueue().toArray(new ProviderTask[0]);
                 Arrays.sort(providerTasks);
                 int compare = providerTask.compareTo(providerTasks[providerTasks.length - 1]);
                 if (compare < 0) {
                     logger.info("priority: {},replace priority: {}", collector.getPriority(),
                             providerTasks[providerTasks.length - 1].getCollector().getPriority());
                     executor.getQueue().remove(providerTasks[providerTasks.length - 1]);
-                    executor.getQueue().offer(task);
                 } else {
                     logger.info("priority: {},can't replace priority: {}", collector.getPriority(),
                             providerTasks[providerTasks.length - 1].getCollector().getPriority());
