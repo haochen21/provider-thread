@@ -101,7 +101,9 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
             metricsMonitorService.getMetricsMonitorInfo(metrics).getSuccess().addAndGet(1);
         }
         metricsMonitorService.getMetricsMonitorInfo(metrics).getServiceTime().addAndGet(serviceTime);
-
+        if (metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().get() < serviceTime) {
+            metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().set(serviceTime);
+        }
         logger.info("afterExecute,metrics: {},mo: {}", collector.getHitLog().getRule().getMetrics(), collector.getHitLog().getMo());
     }
 
@@ -127,8 +129,7 @@ public class ProviderThreadPool extends ThreadPoolExecutor {
         public Thread newThread(Runnable r) {
             Thread thread = defaultFactory.newThread(r);
             thread.setName("providerPool-" +
-                    poolNumber.getAndIncrement() +
-                    "-thread-");
+                    poolNumber.getAndIncrement());
             thread.setDaemon(true);
             return thread;
         }

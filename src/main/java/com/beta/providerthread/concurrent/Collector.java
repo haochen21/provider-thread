@@ -67,8 +67,8 @@ public class Collector implements Runnable, Comparable<Collector> {
             CircuitBreaker circuitBreaker = circuitBreakerService.
                     getCircuitBreaker(hitLog.getRule().getMetrics());
 
-            //CacheMetricsProvider provider = new CacheMetricsProvider();
-            TimeoutMetricProvider provider = new TimeoutMetricProvider();
+            CacheMetricsProvider provider = new CacheMetricsProvider();
+            //TimeoutMetricProvider provider = new TimeoutMetricProvider();
 
             // 如果upstream返回一个mono,在断路状态下，upstream还会被调用
             Callable<SampleValue> callable = () -> provider.sample(this.hitLog.getMo(), this.hitLog.getRule().getMetrics());

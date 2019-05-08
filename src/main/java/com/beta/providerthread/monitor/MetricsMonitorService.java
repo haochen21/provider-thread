@@ -24,7 +24,7 @@ public class MetricsMonitorService {
         cache = new ConcurrentHashMap<>();
         executor = new ScheduledThreadPoolExecutor(1);
         executor.scheduleAtFixedRate(new MonitorStatistic(),
-                0, 60, TimeUnit.SECONDS);
+                0, 300, TimeUnit.SECONDS);
     }
 
     public MetricsMonitorInfo getMetricsMonitorInfo(Metrics metrics) {

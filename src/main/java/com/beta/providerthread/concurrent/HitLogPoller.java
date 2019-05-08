@@ -62,6 +62,7 @@ public class HitLogPoller {
     public void init() {
         ThreadFactory threadFactory = new HitLogPollerThreadFactory();
         executor = new ScheduledThreadPoolExecutor(2, threadFactory);
+        // 指定任务可以从定时器里删除
         executor.setRemoveOnCancelPolicy(true);
 
         futureMap = new ConcurrentHashMap<>();
@@ -84,6 +85,13 @@ public class HitLogPoller {
         });
     }
 
+    public void deleteHitLog(HitLog hitLog){
+        String key = hitLog.getRuleId() + "." + hitLog.getMoId();
+        if(futureMap.contains(key)){
+            futureMap.get(key).cancel(true);
+            futureMap.remove(key);
+        }
+    }
     /**
      * 采集时间到后，把hitLog加入到采集线程池
      */

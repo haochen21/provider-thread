@@ -32,7 +32,10 @@ public class MetricsMonitorInfo {
 
     private AtomicLong serviceTime = new AtomicLong();
 
+    private AtomicLong maxServiceTime = new AtomicLong(0);
+
     public void clear() {
+        maxServiceTime.set(0);
         success.set(0);
         timeout.set(0);
         notPermitted.set(0);
@@ -45,6 +48,7 @@ public class MetricsMonitorInfo {
         info.put("moType", moType);
         info.put("metricName", metricName);
         info.put("avgTime/Millis",getAvgTime());
+        info.put("maxTime/Millis",TimeUnit.NANOSECONDS.toMillis(this.getMaxServiceTime().get()));
         info.put("success", success);
         info.put("timeout", timeout);
         info.put("notPermitted", notPermitted);
