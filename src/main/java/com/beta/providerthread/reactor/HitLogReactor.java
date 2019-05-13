@@ -4,7 +4,9 @@ import com.beta.providerthread.cache.AlarmHitLogCache;
 import com.beta.providerthread.cache.OmHitLogCache;
 import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.model.HitLog;
+import com.beta.providerthread.model.Metrics;
 import com.beta.providerthread.model.SampleValue;
+import com.beta.providerthread.monitor.MetricsMonitorService;
 import com.beta.providerthread.pdm.PdmClient;
 import com.beta.providerthread.service.CircuitBreakerService;
 import com.beta.providerthread.service.SemaphoreService;
@@ -13,6 +15,7 @@ import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerOpenException;
 import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.AllArgsConstructor;
@@ -46,6 +49,9 @@ public class HitLogReactor {
 
     @Autowired
     SemaphoreService semaphoreService;
+
+    @Autowired
+    MetricsMonitorService metricsMonitorService;
 
     // key: ruleId+"."+moId
     ConcurrentHashMap<String, ScheduledFuture> futureMap;
@@ -100,8 +106,8 @@ public class HitLogReactor {
         public void run() {
             logger.info("hitLogTask: {}", hitLog);
             BulkheadConfig config = BulkheadConfig.custom()
-                    .maxConcurrentCalls(0)
-                    .maxWaitTime(100)
+                    .maxConcurrentCalls(1)
+                    .maxWaitTime(0)
                     .build();
             BulkheadRegistry registry = BulkheadRegistry.of(config);
             Bulkhead bulkhead = registry.bulkhead("foo");
@@ -110,28 +116,33 @@ public class HitLogReactor {
 
             PdmClient pdmClient = new PdmClient();
 
-
             pdmClient.sample(hitLog.getMo(), this.hitLog.getRule().getMetrics())
-                    .log().publishOn(bizProcessPool)
-                    .log().transform(BulkheadOperator.of(bulkhead))
-                    .log().transform(CircuitBreakerOperator.of(circuitBreaker))
-                    .log().timeout(Duration.ofSeconds(2))
-                    .log().doOnError(error -> {
-                if (error instanceof TimeoutException) {
-                    circuitBreaker.onError(
-                            2 * 1000, error);
-                }
-            })
-                    .log().subscribeOn(samplingPool)
-                    .log().map(sampleValue -> {
-                postHandler(sampleValue);
-                return sampleValue;
-            }).log().subscribe(sampleValue -> {
-                System.out.println(sampleValue);
-            }, throwable -> {
-                //这里把sample()异常重新抛出，让线程池的afterExecute进行处理，实现统计功能
-                logger.error("", throwable);
-            });
+                    .publishOn(bizProcessPool)
+                    .transform(CircuitBreakerOperator.of(circuitBreaker))
+                    .timeout(Duration.ofSeconds(1))
+                    .doOnError(error -> {
+                        Metrics metrics = this.hitLog.getRule().getMetrics();
+                        if (error instanceof TimeoutException) {
+                            circuitBreaker.onError(
+                                    2 * 1000, error);
+                            metricsMonitorService.getMetricsMonitorInfo(metrics).getTimeout().addAndGet(1);
+                        }else if (error instanceof CircuitBreakerOpenException) {
+                            metricsMonitorService.getMetricsMonitorInfo(metrics).getNotPermitted().addAndGet(1);
+                        }else {
+                            metricsMonitorService.getMetricsMonitorInfo(metrics).getError().addAndGet(1);
+                        }
+                    })
+                    .subscribeOn(samplingPool)
+                    .elapsed()
+                    .subscribe(tuple2 -> {
+                        Metrics metrics = this.hitLog.getRule().getMetrics();
+                        metricsMonitorService.getMetricsMonitorInfo(metrics).getSuccess().addAndGet(1);
+
+                        metricsMonitorService.getMetricsMonitorInfo(metrics).getServiceTime().addAndGet(tuple2.getT1());
+                        if (metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().get() < tuple2.getT1()) {
+                            metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().set(tuple2.getT1());
+                        }
+                    });
 
         }
     }

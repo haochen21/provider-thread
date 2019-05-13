@@ -58,8 +58,11 @@ public class MetricsMonitorInfo {
     }
 
     private double getAvgTime(){
+        if(this.getSuccess().get() == 0){
+            return new Double(0.00);
+        }
         long serverTimeInMillis = TimeUnit.NANOSECONDS.toMillis(this.getServiceTime().get());
-        Double avg  =  (double)(serverTimeInMillis)/(this.getSuccess().get()+this.getTimeout().get()+this.getError().get());
+        Double avg  =  (double)(this.getServiceTime().get())/(this.getSuccess().get());
         DecimalFormat df = new DecimalFormat("###.###");
         return Double.parseDouble(df.format(avg));
     }

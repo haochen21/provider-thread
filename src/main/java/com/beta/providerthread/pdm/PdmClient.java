@@ -23,18 +23,19 @@ public class PdmClient {
     private static final Logger logger = LoggerFactory.getLogger(PdmClient.class);
 
     public Mono<SampleValue> sample(Mo mo, Metrics metrics) {
-        return Mono.subscriberContext()
-                .map(context -> context.put("startTime",new Date().getTime()))
-                .just(new Random().nextInt(10000))
-                .log().map(random -> {
-            SampleValue sampleValue = new SampleValue();
-            sampleValue.setMo(mo);
-            sampleValue.setMetrics(metrics);
-            sampleValue.setType(ValueType.INTEGER);
-            sampleValue.setValue(random);
-            sampleValue.setSampleTime(LocalDateTime.now());
-            logger.info("111111");
-            return sampleValue;
-        }).log().delayElement(Duration.ofMillis(new Random().nextInt(1000)));
+        return Mono.just(new Random().nextInt(10000))
+                .map(random -> {
+                    if (random > 0) {
+                        throw new RuntimeException("" + random);
+                    }
+                    SampleValue sampleValue = new SampleValue();
+                    sampleValue.setMo(mo);
+                    sampleValue.setMetrics(metrics);
+                    sampleValue.setType(ValueType.INTEGER);
+                    sampleValue.setValue(random);
+                    sampleValue.setSampleTime(LocalDateTime.now());
+                    logger.info("111111");
+                    return sampleValue;
+                }).log().delayElement(Duration.ofMillis(new Random().nextInt(500) + 50));
     }
 }

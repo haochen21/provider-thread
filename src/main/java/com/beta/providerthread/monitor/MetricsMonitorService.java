@@ -24,7 +24,7 @@ public class MetricsMonitorService {
         cache = new ConcurrentHashMap<>();
         executor = new ScheduledThreadPoolExecutor(1);
         executor.scheduleAtFixedRate(new MonitorStatistic(),
-                0, 300, TimeUnit.SECONDS);
+                0, 60, TimeUnit.SECONDS);
     }
 
     public MetricsMonitorInfo getMetricsMonitorInfo(Metrics metrics) {
@@ -43,8 +43,12 @@ public class MetricsMonitorService {
         @Override
         public void run() {
             cache.forEach((k, v) -> {
-                logger.info("statistic info: {}." , v.getStatisticInfo());
-                v.clear();
+                try{
+                    logger.info("statistic info: {}." , v.getStatisticInfo());
+                    v.clear();
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                }
             });
 
 

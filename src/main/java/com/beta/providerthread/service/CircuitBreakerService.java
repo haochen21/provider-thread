@@ -36,7 +36,7 @@ public class CircuitBreakerService {
     public CircuitBreakerService() {
         CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofMillis(60 * 1000))
+                .waitDurationInOpenState(Duration.ofMillis(120 * 1000))
                 .ringBufferSizeInHalfOpenState(2)
                 .ringBufferSizeInClosedState(2)
                 .build();
@@ -47,8 +47,11 @@ public class CircuitBreakerService {
 
     public CircuitBreaker getCircuitBreaker(Metrics metrics) {
         String key = metrics.getMoType() + "." + metrics.getName();
-        return circuitBreakerMap.computeIfAbsent(key,
+        CircuitBreaker circuitBreaker = circuitBreakerMap.computeIfAbsent(key,
                 k -> circuitBreakerRegistry.circuitBreaker(key));
+        circuitBreaker.getEventPublisher()
+                .onEvent(event -> logger.info(event.getEventType().toString()));
+        return circuitBreaker;
     }
 
 }
