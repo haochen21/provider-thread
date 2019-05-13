@@ -47,7 +47,7 @@
             <groupId>io.github.resilience4j</groupId>
             <artifactId>resilience4j-reactor</artifactId>
             <version>0.14.1</version>
-        </dependency>
+        </dependency>Schedulers
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>

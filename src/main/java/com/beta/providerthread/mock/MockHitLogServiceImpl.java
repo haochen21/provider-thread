@@ -43,6 +43,7 @@ public class MockHitLogServiceImpl implements HitLogService {
         } catch (Exception ex) {
             logger.error("find omHitLog error!", ex);
         }
+        omHitLogs.clear();
         return omHitLogs;
     }
 

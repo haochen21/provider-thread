@@ -63,7 +63,7 @@ public class MockRuleServiceImpl implements RuleService {
             windowsStatusAlarmRule.setRuleType(RuleType.ALARM);
             windowsStatusAlarmRule.setMetricsName("windowsStatus");
             windowsStatusAlarmRule.setMoFilter("1=1");
-            windowsStatusAlarmRule.setSampleInterval(60L);
+            windowsStatusAlarmRule.setSampleInterval(10L);
             alarmRules.add(windowsStatusAlarmRule);
 
             logger.info("find alarmRule time is: {}", sleep);

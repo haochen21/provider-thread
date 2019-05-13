@@ -72,7 +72,7 @@ public class HitLogPoller {
         restTemplate = new RestTemplate();
     }
 
-    @Subscribe
+    //@Subscribe
     public void handlerHitLogCache(HitLogCacheEvent hitLogCacheEvent) {
         logger.info("hitLog cache finished....");
         omHitLogCache.getCache().forEach((key, omHitLog) -> {
