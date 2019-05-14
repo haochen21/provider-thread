@@ -38,6 +38,7 @@ public class HitLogReactorTest {
         SemaphoreService semaphoreService = new SemaphoreService();
 
         MetricsMonitorService metricsMonitorService = new MetricsMonitorService();
+        WebClientService webClientService = new WebClientService();
 
         HitLogReactor hitLogReactor = new HitLogReactor();
         hitLogReactor.setAlarmHitLogCache(alarmHitLogCache);
@@ -45,6 +46,7 @@ public class HitLogReactorTest {
         hitLogReactor.setCircuitBreakerService(circuitBreakerService);
         hitLogReactor.setSemaphoreService(semaphoreService);
         hitLogReactor.setMetricsMonitorService(metricsMonitorService);
+        hitLogReactor.setWebClientService(webClientService);
 
         hitLogReactor.init();
         eventBusService.getEventBus().register(hitLogReactor);

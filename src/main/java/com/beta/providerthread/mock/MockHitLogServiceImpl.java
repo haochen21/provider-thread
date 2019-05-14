@@ -22,7 +22,7 @@ public class MockHitLogServiceImpl implements HitLogService {
     public List<OmHitLog> findOmHitLogs() {
         List<OmHitLog> omHitLogs = new ArrayList<>();
         try {
-            int sleep = new Random().nextInt(2000) + 1000;
+            int sleep = new Random().nextInt(10) + 100;
             Thread.sleep(sleep);
 
             OmHitLog cpuStatusHitLog = new OmHitLog();
@@ -51,15 +51,17 @@ public class MockHitLogServiceImpl implements HitLogService {
     public List<AlarmHitLog> findAlarmHitLogs() {
         List<AlarmHitLog> alarmHitLogs = new ArrayList<>();
         try {
-            int sleep = new Random().nextInt(2000) + 1000;
+            int sleep = new Random().nextInt(100) + 100;
             Thread.sleep(sleep);
 
-            AlarmHitLog windowsStatusAlarmHitLog = new AlarmHitLog();
-            windowsStatusAlarmHitLog.setRuleId("1");
-            windowsStatusAlarmHitLog.setCategoryName("host");
-            windowsStatusAlarmHitLog.setMoTypeName("Windows");
-            windowsStatusAlarmHitLog.setMoId("2");
-            alarmHitLogs.add(windowsStatusAlarmHitLog);
+            for(int i = 0;i<3000;i++){
+                AlarmHitLog windowsStatusAlarmHitLog = new AlarmHitLog();
+                windowsStatusAlarmHitLog.setRuleId("1");
+                windowsStatusAlarmHitLog.setCategoryName("host");
+                windowsStatusAlarmHitLog.setMoTypeName("Windows");
+                windowsStatusAlarmHitLog.setMoId(""+i);
+                alarmHitLogs.add(windowsStatusAlarmHitLog);
+            }
 
             logger.info("find alarmHitLog time is: {}", sleep);
         } catch (Exception ex) {

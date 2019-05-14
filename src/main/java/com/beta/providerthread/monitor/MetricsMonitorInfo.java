@@ -48,7 +48,7 @@ public class MetricsMonitorInfo {
         info.put("moType", moType);
         info.put("metricName", metricName);
         info.put("avgTime/Millis",getAvgTime());
-        info.put("maxTime/Millis",TimeUnit.NANOSECONDS.toMillis(this.getMaxServiceTime().get()));
+        info.put("maxTime/Millis",this.getMaxServiceTime().get());
         info.put("success", success);
         info.put("timeout", timeout);
         info.put("notPermitted", notPermitted);

@@ -10,6 +10,7 @@ import com.beta.providerthread.monitor.MetricsMonitorService;
 import com.beta.providerthread.pdm.PdmClient;
 import com.beta.providerthread.service.CircuitBreakerService;
 import com.beta.providerthread.service.SemaphoreService;
+import com.beta.providerthread.service.WebClientService;
 import com.google.common.eventbus.Subscribe;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
@@ -53,6 +54,9 @@ public class HitLogReactor {
     @Autowired
     MetricsMonitorService metricsMonitorService;
 
+    @Autowired
+    WebClientService webClientService;
+
     // key: ruleId+"."+moId
     ConcurrentHashMap<String, ScheduledFuture> futureMap;
 
@@ -61,6 +65,8 @@ public class HitLogReactor {
     Scheduler bizProcessPool;
 
     Scheduler samplingPool;
+
+    PdmClient pdmClient;
 
     private static final Logger logger = LoggerFactory.getLogger(HitLogReactor.class);
 
@@ -74,7 +80,11 @@ public class HitLogReactor {
         futureMap = new ConcurrentHashMap<>();
 
         samplingPool = Schedulers.newElastic("sampling");
-        bizProcessPool = Schedulers.newParallel("bizProcess", 10);
+
+        bizProcessPool = Schedulers.newParallel("bizProcess", 100);
+
+        pdmClient = new PdmClient();
+        pdmClient.setWebClientService(webClientService);
     }
 
     @Subscribe
@@ -91,66 +101,59 @@ public class HitLogReactor {
     }
 
     public void addHitLog(HitLog hitLog) {
-        ScheduledFuture future = executor.scheduleAtFixedRate(new HitLogReactor.HitLogTask(hitLog),
-                0, hitLog.getRule().getSampleInterval(), TimeUnit.SECONDS);
+        ScheduledFuture future = executor.scheduleAtFixedRate(() -> sampling(hitLog),
+                0, 10, TimeUnit.SECONDS);
         String key = hitLog.getRuleId() + "." + hitLog.getMoId();
         futureMap.put(key, future);
     }
 
-    @AllArgsConstructor
-    private class HitLogTask implements Runnable {
+    private void sampling(HitLog hitLog) {
+        CircuitBreaker circuitBreaker = circuitBreakerService.
+                getCircuitBreaker(hitLog.getRule().getMetrics());
 
-        private HitLog hitLog;
+        pdmClient.sampling(hitLog.getMo(), hitLog.getRule().getMetrics())
+                .transform(CircuitBreakerOperator.of(circuitBreaker))
+                .timeout(Duration.ofSeconds(2))
+                .doOnError(error -> {
+                    Metrics metrics = hitLog.getRule().getMetrics();
+                    if (error instanceof TimeoutException) {
+                        circuitBreaker.onError(
+                                2 * 1000, error);
+                        metricsMonitorService.getMetricsMonitorInfo(metrics).getTimeout().addAndGet(1);
+                    } else if (error instanceof CircuitBreakerOpenException) {
+                        metricsMonitorService.getMetricsMonitorInfo(metrics).getNotPermitted().addAndGet(1);
+                    } else {
+                        metricsMonitorService.getMetricsMonitorInfo(metrics).getError().addAndGet(1);
+                    }
+                })
+                .publishOn(bizProcessPool)
+                .elapsed()
+                .map(tuple2-> {
+                    logger.info("time: {}",tuple2.getT1());
+                    Metrics metrics = hitLog.getRule().getMetrics();
+                    metricsMonitorService.getMetricsMonitorInfo(metrics).getSuccess().addAndGet(1);
 
-        @Override
-        public void run() {
-            logger.info("hitLogTask: {}", hitLog);
-            BulkheadConfig config = BulkheadConfig.custom()
-                    .maxConcurrentCalls(1)
-                    .maxWaitTime(0)
-                    .build();
-            BulkheadRegistry registry = BulkheadRegistry.of(config);
-            Bulkhead bulkhead = registry.bulkhead("foo");
-            CircuitBreaker circuitBreaker = circuitBreakerService.
-                    getCircuitBreaker(hitLog.getRule().getMetrics());
+                    metricsMonitorService.getMetricsMonitorInfo(metrics).getServiceTime().addAndGet(tuple2.getT1());
+                    if (metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().get() < tuple2.getT1()) {
+                        metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().set(tuple2.getT1());
+                    }
 
-            PdmClient pdmClient = new PdmClient();
-
-            pdmClient.sample(hitLog.getMo(), this.hitLog.getRule().getMetrics())
-                    .publishOn(bizProcessPool)
-                    .transform(CircuitBreakerOperator.of(circuitBreaker))
-                    .timeout(Duration.ofSeconds(1))
-                    .doOnError(error -> {
-                        Metrics metrics = this.hitLog.getRule().getMetrics();
-                        if (error instanceof TimeoutException) {
-                            circuitBreaker.onError(
-                                    2 * 1000, error);
-                            metricsMonitorService.getMetricsMonitorInfo(metrics).getTimeout().addAndGet(1);
-                        }else if (error instanceof CircuitBreakerOpenException) {
-                            metricsMonitorService.getMetricsMonitorInfo(metrics).getNotPermitted().addAndGet(1);
-                        }else {
-                            metricsMonitorService.getMetricsMonitorInfo(metrics).getError().addAndGet(1);
-                        }
-                    })
-                    .subscribeOn(samplingPool)
-                    .elapsed()
-                    .subscribe(tuple2 -> {
-                        Metrics metrics = this.hitLog.getRule().getMetrics();
-                        metricsMonitorService.getMetricsMonitorInfo(metrics).getSuccess().addAndGet(1);
-
-                        metricsMonitorService.getMetricsMonitorInfo(metrics).getServiceTime().addAndGet(tuple2.getT1());
-                        if (metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().get() < tuple2.getT1()) {
-                            metricsMonitorService.getMetricsMonitorInfo(metrics).getMaxServiceTime().set(tuple2.getT1());
-                        }
-                    });
-
-        }
+                    postHandler(tuple2.getT2());
+                    return tuple2.getT2();
+                })
+                .subscribe();
     }
 
     private void postHandler(SampleValue sampleValue) {
-        logger.info("post handler...." + sampleValue.toString());
+        logger.info("start post handler...." + sampleValue.toString());
         String key = sampleValue.getMo().getMoType() + "." + sampleValue.getMetrics().getName() + sampleValue.getMo().getId();
-
+        try{
+            logger.info("key: {}",key);
+            Thread.sleep(200);
+            logger.info("end post handler...." + sampleValue.toString());
+        }catch(Exception ex){
+            ex.printStackTrace();
+        }
     }
 
     private static class HitLogReactorThreadFactory implements ThreadFactory {

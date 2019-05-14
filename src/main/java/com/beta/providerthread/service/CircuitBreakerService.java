@@ -36,7 +36,7 @@ public class CircuitBreakerService {
     public CircuitBreakerService() {
         CircuitBreakerConfig circuitBreakerConfig = CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofMillis(120 * 1000))
+                .waitDurationInOpenState(Duration.ofMillis(60 * 1000))
                 .ringBufferSizeInHalfOpenState(2)
                 .ringBufferSizeInClosedState(2)
                 .build();
