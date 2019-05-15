@@ -28,6 +28,8 @@ public class MetricsMonitorInfo {
 
     private AtomicInteger notPermitted = new AtomicInteger();
 
+    private AtomicInteger semaphore = new AtomicInteger();
+
     private AtomicInteger error = new AtomicInteger();
 
     private AtomicLong serviceTime = new AtomicLong();
@@ -39,6 +41,7 @@ public class MetricsMonitorInfo {
         success.set(0);
         timeout.set(0);
         notPermitted.set(0);
+        semaphore.set(0);
         error.set(0);
         serviceTime.set(0);
     }
@@ -52,6 +55,7 @@ public class MetricsMonitorInfo {
         info.put("success", success);
         info.put("timeout", timeout);
         info.put("notPermitted", notPermitted);
+        info.put("semaphoreError", semaphore);
         info.put("error", error);
 
         return info;

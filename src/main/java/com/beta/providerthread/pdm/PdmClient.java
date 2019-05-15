@@ -46,7 +46,7 @@ public class PdmClient {
 
     public Mono<SampleValue> sampling(Mo mo, Metrics metrics) {
         Mono<SampleValue> result = webClientService.getPdmWebclient().get()
-                .uri("/pdm/client/sampling?latency=" + new Random().nextInt(500))
+                .uri("/pdm/client/sampling?latency=" + (new Random().nextInt(500)+1000))
                 .retrieve()
                 .bodyToMono(Integer.class)
                 .map(value -> {

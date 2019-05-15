@@ -6,6 +6,7 @@ import com.beta.providerthread.eventbus.HitLogCacheEvent;
 import com.beta.providerthread.model.HitLog;
 import com.beta.providerthread.model.Metrics;
 import com.beta.providerthread.model.SampleValue;
+import com.beta.providerthread.monitor.MetricsMonitorInfo;
 import com.beta.providerthread.monitor.MetricsMonitorService;
 import com.beta.providerthread.pdm.PdmClient;
 import com.beta.providerthread.service.CircuitBreakerService;
@@ -26,12 +27,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Date;
+import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -81,7 +85,7 @@ public class HitLogReactor {
 
         samplingPool = Schedulers.newElastic("sampling");
 
-        bizProcessPool = Schedulers.newParallel("bizProcess", 100);
+        bizProcessPool = Schedulers.newParallel("bizProcess", 20);
 
         pdmClient = new PdmClient();
         pdmClient.setWebClientService(webClientService);
@@ -102,7 +106,7 @@ public class HitLogReactor {
 
     public void addHitLog(HitLog hitLog) {
         ScheduledFuture future = executor.scheduleAtFixedRate(() -> sampling(hitLog),
-                0, 10, TimeUnit.SECONDS);
+                new Random().nextInt(10*1000), 10*1000, TimeUnit.MILLISECONDS);
         String key = hitLog.getRuleId() + "." + hitLog.getMoId();
         futureMap.put(key, future);
     }
@@ -111,25 +115,43 @@ public class HitLogReactor {
         CircuitBreaker circuitBreaker = circuitBreakerService.
                 getCircuitBreaker(hitLog.getRule().getMetrics());
 
-        pdmClient.sampling(hitLog.getMo(), hitLog.getRule().getMetrics())
-                .transform(CircuitBreakerOperator.of(circuitBreaker))
-                .timeout(Duration.ofSeconds(2))
+        Semaphore semaphore = semaphoreService.getSemaphore(hitLog);
+        Mono<Boolean> semaphoreMono = Mono.fromCallable(() -> semaphore.tryAcquire());
+
+        Mono<SampleValue> samplingMono = pdmClient.sampling(hitLog.getMo(), hitLog.getRule().getMetrics())
+                .transform(CircuitBreakerOperator.of(circuitBreaker));
+
+        semaphoreMono.zipWhen(semaphoreStatus -> {
+            if (semaphoreStatus) {
+                return samplingMono;
+            } else {
+                return Mono.error(new SemaphoreException("semaphore error."));
+            }
+        }).publishOn(bizProcessPool)
+                .map(Tuple2::getT2)
+                .timeout(Duration.ofSeconds(5))
                 .doOnError(error -> {
                     Metrics metrics = hitLog.getRule().getMetrics();
+                    MetricsMonitorInfo metricsMonitorInfo = metricsMonitorService.getMetricsMonitorInfo(metrics);
                     if (error instanceof TimeoutException) {
                         circuitBreaker.onError(
                                 2 * 1000, error);
-                        metricsMonitorService.getMetricsMonitorInfo(metrics).getTimeout().addAndGet(1);
+                        metricsMonitorInfo.getTimeout().addAndGet(1);
+                        semaphore.release();
                     } else if (error instanceof CircuitBreakerOpenException) {
-                        metricsMonitorService.getMetricsMonitorInfo(metrics).getNotPermitted().addAndGet(1);
+                        metricsMonitorInfo.getNotPermitted().addAndGet(1);
+                        semaphore.release();
+                    } else if (error instanceof SemaphoreException) {
+                        metricsMonitorInfo.getSemaphore().addAndGet(1);
                     } else {
-                        metricsMonitorService.getMetricsMonitorInfo(metrics).getError().addAndGet(1);
+                        metricsMonitorInfo.getError().addAndGet(1);
+                        semaphore.release();
                     }
                 })
-                .publishOn(bizProcessPool)
+
                 .elapsed()
-                .map(tuple2-> {
-                    logger.info("time: {}",tuple2.getT1());
+                .map(tuple2 -> {
+                    logger.info("time: {}", tuple2.getT1());
                     Metrics metrics = hitLog.getRule().getMetrics();
                     metricsMonitorService.getMetricsMonitorInfo(metrics).getSuccess().addAndGet(1);
 
@@ -139,19 +161,28 @@ public class HitLogReactor {
                     }
 
                     postHandler(tuple2.getT2());
+
                     return tuple2.getT2();
                 })
+                .doFinally(signalType -> {
+                    if (signalType == SignalType.ON_COMPLETE) {
+                        logger.info("release semaphore.........");
+                        semaphore.release();
+                    }
+                })
                 .subscribe();
+
+
     }
 
     private void postHandler(SampleValue sampleValue) {
         logger.info("start post handler...." + sampleValue.toString());
         String key = sampleValue.getMo().getMoType() + "." + sampleValue.getMetrics().getName() + sampleValue.getMo().getId();
-        try{
-            logger.info("key: {}",key);
-            Thread.sleep(200);
+        try {
+            logger.info("key: {}", key);
+            for(int i=0;i<100000000;i++){}
             logger.info("end post handler...." + sampleValue.toString());
-        }catch(Exception ex){
+        } catch (Exception ex) {
             ex.printStackTrace();
         }
     }

@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +47,10 @@ public class MetricsMonitorService {
             cache.forEach((k, v) -> {
                 try{
                     logger.info("statistic info: {}." , v.getStatisticInfo());
+                    BufferedWriter writer = new BufferedWriter(new FileWriter("d:\\statistic.txt",true));
+                    writer.write(v.getStatisticInfo().toString());
+                    writer.newLine();
+                    writer.close();
                     v.clear();
                 }catch (Exception ex){
                     ex.printStackTrace();
