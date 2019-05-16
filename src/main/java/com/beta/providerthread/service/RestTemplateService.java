@@ -23,7 +23,7 @@ public class RestTemplateService {
 
         PoolingHttpClientConnectionManager poolingConnectionManager = new PoolingHttpClientConnectionManager();
         poolingConnectionManager.setMaxTotal(1000); // 连接池最大连接数
-        poolingConnectionManager.setDefaultMaxPerRoute(100); // 每个主机的并发
+        poolingConnectionManager.setDefaultMaxPerRoute(500); // 每个主机的并发
 
         HttpClientBuilder httpClientBuilder = HttpClientBuilder.create();
         //设置HTTP连接管理器

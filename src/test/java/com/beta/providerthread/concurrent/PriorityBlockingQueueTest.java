@@ -13,12 +13,12 @@ public class PriorityBlockingQueueTest {
     public void testOrderQueue() throws InterruptedException {
         PriorityBlockingQueue<ProviderTask> queue = new PriorityBlockingQueue<>();
 
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.DEFAULT)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.MEDIUM)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.DEFAULT)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.URGENT)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.LOW)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.HIGH)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.DEFAULT)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.MEDIUM)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.DEFAULT)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.URGENT)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.LOW)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.HIGH)));
 
         assertThat(queue.take().getCollector().getPriority()).isEqualTo(Collector.Priority.URGENT);
         assertThat(queue.take().getCollector().getPriority()).isEqualTo(Collector.Priority.HIGH);
@@ -32,11 +32,11 @@ public class PriorityBlockingQueueTest {
     public void testReplaceOrderQueue() throws InterruptedException {
         PriorityBlockingQueue<ProviderTask> queue = new PriorityBlockingQueue<>(3);
 
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.DEFAULT)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.MEDIUM)));
-        queue.add(new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.DEFAULT)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.DEFAULT)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.MEDIUM)));
+        queue.add(new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.DEFAULT)));
 
-        ProviderTask providerTask = new ProviderTask(new Collector(null,null,null,null,0, Collector.Priority.URGENT));
+        ProviderTask providerTask = new ProviderTask(new Collector(null, null, null, null, null, 0, Collector.Priority.URGENT));
         do {
             ProviderTask[] providerTasks = queue.toArray(new ProviderTask[0]);
             Arrays.sort(providerTasks);

@@ -20,7 +20,7 @@ public class CacheMetricsProvider implements MetricsProvider {
     public SampleValue sample(Mo mo, Metrics metrics) {
         logger.info("start sample,mo: {},metrics: {}", mo, metrics);
         try {
-            int sleep = new Random().nextInt(2000) + 1000;
+            int sleep = new Random().nextInt(100) + 1000;
             logger.info("sleep is : {}", sleep);
             Thread.sleep(sleep);
             SampleValue sampleValue = new SampleValue();

@@ -47,8 +47,8 @@ public class MockMoServiceImpl implements MoService {
 
     private List<Mo> findWindows() {
         List<Mo> mos = new ArrayList<>();
-        for(int i=0;i<3000;i++){
-            mos.add(createWindow(""+i, "windows-"+i, "127.0.0."+i));
+        for (int i = 0; i < 3000; i++) {
+            mos.add(createWindow("" + i, "windows-" + i, "127.0.0." + i));
         }
         return mos;
     }

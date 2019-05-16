@@ -54,12 +54,12 @@ public class MockHitLogServiceImpl implements HitLogService {
             int sleep = new Random().nextInt(100) + 100;
             Thread.sleep(sleep);
 
-            for(int i = 0;i<3000;i++){
+            for (int i = 0; i < 3000; i++) {
                 AlarmHitLog windowsStatusAlarmHitLog = new AlarmHitLog();
                 windowsStatusAlarmHitLog.setRuleId("1");
                 windowsStatusAlarmHitLog.setCategoryName("host");
                 windowsStatusAlarmHitLog.setMoTypeName("Windows");
-                windowsStatusAlarmHitLog.setMoId(""+i);
+                windowsStatusAlarmHitLog.setMoId("" + i);
                 alarmHitLogs.add(windowsStatusAlarmHitLog);
             }
 

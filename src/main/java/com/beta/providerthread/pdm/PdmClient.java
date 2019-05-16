@@ -5,6 +5,7 @@ import com.beta.providerthread.model.Mo;
 import com.beta.providerthread.model.SampleValue;
 import com.beta.providerthread.model.ValueType;
 import com.beta.providerthread.reactor.HitLogReactor;
+import com.beta.providerthread.service.RestTemplateService;
 import com.beta.providerthread.service.WebClientService;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +25,8 @@ import java.util.Random;
 public class PdmClient {
 
     private WebClientService webClientService;
+
+    private RestTemplateService restTemplateService;
 
     private static final Logger logger = LoggerFactory.getLogger(PdmClient.class);
 
@@ -61,5 +64,18 @@ public class PdmClient {
                 });
 
         return result;
+    }
+
+    public SampleValue samplingBlock(Mo mo, Metrics metrics){
+        String url = "http://127.0.0.1:9200/pdm/client/sampling?latency=" + (new Random().nextInt(500)+1000);
+        int value = restTemplateService.getRestTemplate().getForObject(url, Integer.class);
+        SampleValue sampleValue = new SampleValue();
+        sampleValue.setMo(mo);
+        sampleValue.setMetrics(metrics);
+        sampleValue.setType(ValueType.INTEGER);
+        sampleValue.setValue(value);
+        sampleValue.setSampleTime(LocalDateTime.now());
+        logger.info("111111");
+        return sampleValue;
     }
 }

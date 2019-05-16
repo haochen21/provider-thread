@@ -8,7 +8,9 @@ import com.beta.providerthread.model.HitLog;
 import com.beta.providerthread.model.ProviderType;
 import com.beta.providerthread.model.RuleType;
 import com.beta.providerthread.monitor.MetricsMonitorService;
+import com.beta.providerthread.pdm.PdmClient;
 import com.beta.providerthread.service.CircuitBreakerService;
+import com.beta.providerthread.service.RestTemplateService;
 import com.beta.providerthread.service.SemaphoreService;
 import com.google.common.eventbus.Subscribe;
 import lombok.AllArgsConstructor;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
+import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,6 +59,8 @@ public class HitLogPoller {
     //key: ruleId+"."+moId
     ConcurrentHashMap<String, ScheduledFuture> futureMap;
 
+    PdmClient pdmClient;
+
     private static final Logger logger = LoggerFactory.getLogger(HitLogPoller.class);
 
     @PostConstruct
@@ -67,12 +72,16 @@ public class HitLogPoller {
 
         futureMap = new ConcurrentHashMap<>();
 
-        threadPool = new ProviderThreadPool(metricsMonitorService);
+        threadPool = new ProviderThreadPool(2000, 2000, 20, 20, metricsMonitorService);
 
+        pdmClient = new PdmClient();
+
+        RestTemplateService restTemplateService = new RestTemplateService(600*1000, 600*1000, 600*1000);
+        pdmClient.setRestTemplateService(restTemplateService);
         restTemplate = new RestTemplate();
     }
 
-    //@Subscribe
+    @Subscribe
     public void handlerHitLogCache(HitLogCacheEvent hitLogCacheEvent) {
         logger.info("hitLog cache finished....");
         omHitLogCache.getCache().forEach((key, omHitLog) -> {
@@ -85,22 +94,20 @@ public class HitLogPoller {
         });
     }
 
-    public void deleteHitLog(HitLog hitLog){
+    public void deleteHitLog(HitLog hitLog) {
         String key = hitLog.getRuleId() + "." + hitLog.getMoId();
-        if(futureMap.contains(key)){
+        if (futureMap.contains(key)) {
             futureMap.get(key).cancel(true);
             futureMap.remove(key);
         }
     }
+
     /**
      * 采集时间到后，把hitLog加入到采集线程池
      */
     public void addHitLog(HitLog hitLog) {
-        if (hitLog.getRule().getMetrics().getProviderType() != ProviderType.RPC) {
-            return;
-        }
         ScheduledFuture future = executor.scheduleAtFixedRate(new HitLogTask(hitLog),
-                0, hitLog.getRule().getSampleInterval(), TimeUnit.SECONDS);
+                new Random().nextInt(10 * 1000), 10 * 1000, TimeUnit.MILLISECONDS);
         String key = hitLog.getRuleId() + "." + hitLog.getMoId();
         futureMap.put(key, future);
     }
@@ -130,16 +137,11 @@ public class HitLogPoller {
         @Override
         public void run() {
             logger.info("hitLogTask: {}", hitLog);
-            if (hitLog.getRule().getMetrics().getProviderType() == ProviderType.RPC) {
-                if (hitLog.getRule().getRuleType() == RuleType.OM) {
-                    // 把任务加入线程池
-                    Collector collector = new Collector(metricsValueCache,
-                            circuitBreakerService, semaphoreService, hitLog, 2, Collector.Priority.DEFAULT);
-                    // 把任务提交到线程池，后面任务的处理与当前线程没有关系
-                    threadPool.submit(collector);
-                }
-            }
-
+            // 把任务加入线程池
+            Collector collector = new Collector(metricsValueCache,
+                    circuitBreakerService, semaphoreService, pdmClient, hitLog, 2, Collector.Priority.DEFAULT);
+            // 把任务提交到线程池，后面任务的处理与当前线程没有关系
+            threadPool.submit(collector);
         }
     }
 }

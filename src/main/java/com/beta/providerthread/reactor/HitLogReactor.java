@@ -85,7 +85,7 @@ public class HitLogReactor {
 
         samplingPool = Schedulers.newElastic("sampling");
 
-        bizProcessPool = Schedulers.newParallel("bizProcess", 20);
+        bizProcessPool = Schedulers.newParallel("bizProcess", 10);
 
         pdmClient = new PdmClient();
         pdmClient.setWebClientService(webClientService);

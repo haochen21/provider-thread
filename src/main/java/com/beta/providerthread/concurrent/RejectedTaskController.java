@@ -17,20 +17,20 @@ public class RejectedTaskController implements RejectedExecutionHandler {
             ProviderTask providerTask = (ProviderTask) task;
             Collector collector = providerTask.getCollector();
             logger.info("reject,{}", collector.getHitLog().toString());
-            do {
-                ProviderTask[] providerTasks = executor.getQueue().toArray(new ProviderTask[0]);
-                Arrays.sort(providerTasks);
-                int compare = providerTask.compareTo(providerTasks[providerTasks.length - 1]);
-                if (compare < 0) {
-                    logger.info("priority: {},replace priority: {}", collector.getPriority(),
-                            providerTasks[providerTasks.length - 1].getCollector().getPriority());
-                    executor.getQueue().remove(providerTasks[providerTasks.length - 1]);
-                } else {
-                    logger.info("priority: {},can't replace priority: {}", collector.getPriority(),
-                            providerTasks[providerTasks.length - 1].getCollector().getPriority());
-                    break;
-                }
-            } while (!executor.getQueue().offer(task));
+//            do {
+//                ProviderTask[] providerTasks = executor.getQueue().toArray(new ProviderTask[0]);
+//                Arrays.sort(providerTasks);
+//                int compare = providerTask.compareTo(providerTasks[providerTasks.length - 1]);
+//                if (compare < 0) {
+//                    logger.info("priority: {},replace priority: {}", collector.getPriority(),
+//                            providerTasks[providerTasks.length - 1].getCollector().getPriority());
+//                    executor.getQueue().remove(providerTasks[providerTasks.length - 1]);
+//                } else {
+//                    logger.info("priority: {},can't replace priority: {}", collector.getPriority(),
+//                            providerTasks[providerTasks.length - 1].getCollector().getPriority());
+//                    break;
+//                }
+//            } while (!executor.getQueue().offer(task));
         }
     }
 }

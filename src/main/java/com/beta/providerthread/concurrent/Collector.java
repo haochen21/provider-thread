@@ -4,6 +4,7 @@ import com.beta.providerthread.cache.MetricsValueCache;
 import com.beta.providerthread.model.HitLog;
 
 import com.beta.providerthread.model.SampleValue;
+import com.beta.providerthread.pdm.PdmClient;
 import com.beta.providerthread.provider.CacheMetricsProvider;
 import com.beta.providerthread.service.CircuitBreakerService;
 import com.beta.providerthread.service.SemaphoreService;
@@ -46,32 +47,35 @@ public class Collector implements Runnable, Comparable<Collector> {
 
     private boolean isCircuitBreakOpen = false;
 
+    private PdmClient pdmClient;
+
     private static final Logger logger = LoggerFactory.getLogger(Collector.class);
 
     public Collector(MetricsValueCache metricsValueCache, CircuitBreakerService circuitBreakerService,
-                     SemaphoreService semaphoreService, HitLog hitLog, int bizTimeout, Priority priority) {
+                     SemaphoreService semaphoreService, PdmClient pdmClient, HitLog hitLog, int bizTimeout, Priority priority) {
         this.metricsValueCache = metricsValueCache;
         this.circuitBreakerService = circuitBreakerService;
         this.semaphoreService = semaphoreService;
+        this.pdmClient = pdmClient;
         this.hitLog = hitLog;
         this.bizTimeout = bizTimeout;
         this.priority = priority;
     }
 
 
-    @Override
-    public void run() {
+    //@Override
+    public void run1() {
         Semaphore semaphore = semaphoreService.getSemaphore(hitLog);
 
         if (semaphore.tryAcquire()) {
             CircuitBreaker circuitBreaker = circuitBreakerService.
                     getCircuitBreaker(hitLog.getRule().getMetrics());
 
-            CacheMetricsProvider provider = new CacheMetricsProvider();
+            //CacheMetricsProvider provider = new CacheMetricsProvider();
             //TimeoutMetricProvider provider = new TimeoutMetricProvider();
 
             // 如果upstream返回一个mono,在断路状态下，upstream还会被调用
-            Callable<SampleValue> callable = () -> provider.sample(this.hitLog.getMo(), this.hitLog.getRule().getMetrics());
+            Callable<SampleValue> callable = () -> pdmClient.samplingBlock(this.hitLog.getMo(), this.hitLog.getRule().getMetrics());
             Mono.fromCallable(callable)
                     .transform(CircuitBreakerOperator.of(circuitBreaker))
                     .timeout(Duration.ofSeconds(bizTimeout))
@@ -101,6 +105,20 @@ public class Collector implements Runnable, Comparable<Collector> {
     }
 
     @Override
+    public void run() {
+        Semaphore semaphore = semaphoreService.getSemaphore(hitLog);
+
+        if (semaphore.tryAcquire()) {
+            SampleValue sampleValue = pdmClient.samplingBlock(this.hitLog.getMo(), this.hitLog.getRule().getMetrics());
+            postHandler(sampleValue);
+            semaphore.release();
+        } else {
+            logger.error("previous task don't finish");
+            throw new RuntimeException("semaphore");
+        }
+    }
+
+    @Override
     public int compareTo(Collector other) {
         if (this == other) {
             return 0;
@@ -115,6 +133,8 @@ public class Collector implements Runnable, Comparable<Collector> {
         logger.info("post handler..................");
         String key = sampleValue.getMo().getMoType() + "." + sampleValue.getMetrics().getName() + sampleValue.getMo().getId();
         metricsValueCache.put(key, sampleValue);
+        for (int i = 0; i < 100000000; i++) {
+        }
     }
 
     // 只能抛出RuntimeException,这里封装一下,让编译器编译通过
